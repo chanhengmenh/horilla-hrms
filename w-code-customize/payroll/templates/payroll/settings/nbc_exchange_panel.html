@@ -1,0 +1,146 @@
+{% load i18n %}
+{% comment %}
+    National Bank of Cambodia part of the Exchange Rate card
+    (Settings -> General). Rendered on its own by
+    payroll.views.tax_views.settings_exchange_rate_nbc_panel and swapped into
+    the card with HTMX - see payroll/settings/nbc_exchange_rate.html.
+{% endcomment %}
+<div id="nbcExchangeRatePanel" class="border border-[#ebebeb] rounded-xl overflow-hidden shadow-sm bg-white mt-4">
+    <div class="px-5 py-4 border-b border-[#ebebeb] bg-[#f9fafb]">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <ion-icon name="business-outline" class="text-blue-600 text-lg"></ion-icon>
+                </div>
+                <div>
+                    <span class="text-sm font-semibold text-[#333]">{% trans "National Bank of Cambodia (NBC) reference rates" %}</span>
+                    <div class="text-xs text-gray-500 mt-0.5">{% trans "Official USD to KHR rates published by NBC" %}</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="month" name="month" value="{{ nbc_month_value }}" class="oh-input"
+                    style="height: 36px; width: 165px;" aria-label="{% trans 'Month' %}"
+                    hx-get="{% url 'settings-exchange-rate-nbc-panel' %}"
+                    hx-target="#nbcExchangeRatePanel" hx-swap="outerHTML"
+                    hx-trigger="change" hx-include="this">
+                <button type="button" class="oh-btn oh-btn--light-bkg oh-btn--small flex items-center gap-1"
+                    hx-get="{% url 'settings-exchange-rate-nbc-panel' %}"
+                    hx-vals='{"refresh": "1", "month": "{{ nbc_month_value }}"}'
+                    hx-target="#nbcExchangeRatePanel" hx-swap="outerHTML"
+                    hx-indicator="#nbcPanelRefreshSpinner">
+                    <ion-icon name="refresh-outline" class="text-sm"></ion-icon>
+                    {% trans "Refresh" %}
+                    <span id="nbcPanelRefreshSpinner" class="htmx-indicator spinner-border spinner-border-sm"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+        <div class="px-5 py-4">
+        <div class="border border-[#ebebeb] rounded-xl p-4 bg-[#fafafa] flex flex-wrap justify-between items-center gap-3">
+            <div>
+                <div class="text-xs font-semibold text-gray-500">
+                    {% blocktrans with requested=nbc_official_requested_date|date:"d F Y" working=nbc_official_effective_date|date:"d F Y" %}
+                        Official NBC rate of the 15th (requested {{ requested }})
+                    {% endblocktrans %}
+                </div>
+                {% if nbc_official_rate %}
+                    <div class="font-bold text-[#333] mt-1" style="font-size: 22px;">
+                        1 USD = {{ nbc_official_rate|floatformat:2 }} KHR
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">
+                        {% blocktrans with published=nbc_official_published_date|date:"d F Y" %}
+                            Published by NBC on {{ published }} (working day, Monday - Friday).
+                        {% endblocktrans %}
+                        {% if nbc_official_effective_date != nbc_official_requested_date %}
+                            {% trans "The 15th falls on a weekend, so the closest working day before it is used." %}
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="text-sm font-semibold text-danger mt-1">
+                        {% trans "Not published yet" %}
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">{{ nbc_message }}</div>
+                {% endif %}
+            </div>
+            <div class="flex flex-col items-end gap-2">
+                {% if nbc_official_rate %}
+                    {% if nbc_official_applied %}
+                        <span class="oh-badge oh-badge--success inline-flex items-center gap-1">
+                            <ion-icon name="checkmark-circle-outline"></ion-icon>
+                            {% trans "Applied to payroll" %}
+                        </span>
+                    {% else %}
+                        <span class="oh-badge oh-badge--warning inline-flex items-center gap-1">
+                            <ion-icon name="time-outline"></ion-icon>
+                            {% trans "Not applied yet" %}
+                        </span>
+                    {% endif %}
+                    {% if not nbc_official_applied and nbc_is_current_month and perms.payroll.change_payrollsettings %}
+                        <button type="button" class="oh-btn oh-btn--secondary oh-btn--small flex items-center gap-1"
+                            hx-post="{% url 'settings-exchange-rate-fetch-nbc' %}"
+                            hx-target="#nbcExchangeRateContainer" hx-swap="outerHTML"
+                            hx-indicator="#nbcPanelApplySpinner">
+                            <ion-icon name="cloud-download-outline" class="text-sm"></ion-icon>
+                            {% trans "Apply official rate" %}
+                            <span id="nbcPanelApplySpinner" class="htmx-indicator spinner-border spinner-border-sm"></span>
+                        </button>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+                {% if not nbc_available %}
+        <div class="border border-[#fbbf24] rounded-xl p-3 mt-3 text-xs text-amber-800 bg-amber-50">
+            {{ nbc_message }}
+        </div>
+        {% endif %}
+
+        <div class="text-xs font-semibold text-[#333] mt-4 mb-2">
+            {% blocktrans with month=nbc_month|date:"F Y" %}NBC rates published in {{ month }}{% endblocktrans %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr class="bg-[#f3f3f3]">
+                        <th class="text-xs text-[#666] font-medium py-2">{% trans "Date" %}</th>
+                        <th class="text-xs text-[#666] font-medium py-2">{% trans "Working day" %}</th>
+                        <th class="text-xs text-[#666] font-medium py-2">{% trans "Rate (1 USD)" %}</th>
+                        <th class="text-xs text-[#666] font-medium py-2">{% trans "Official rate of the 15th" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in nbc_rates %}
+                    <tr class="{% if row.is_official %}bg-[#f0fdf4]{% endif %} hover:bg-[#f9fafb]">
+                        <td class="text-xs py-2">{{ row.date|date:"d F Y" }}</td>
+                        <td class="text-xs py-2">{{ row.date|date:"D" }}</td>
+                        <td class="text-xs font-semibold py-2">{{ row.rate|floatformat:2 }} KHR</td>
+                        <td class="text-xs py-2">
+                            {% if row.is_official %}
+                                <span class="text-success font-semibold">{% trans "Yes" %}</span>
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-xs text-gray-500 text-center py-3">
+                            {% trans "No NBC rate is available for this month." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-xs text-gray-500 mt-3 pt-2 border-t border-[#ebebeb]">
+            {% trans "NBC publishes one reference rate per working day (Monday - Friday); weekend dates are never published." %}
+            {% if nbc_fetched_at %}
+                {% blocktrans with at=nbc_fetched_at|date:"d F Y H:i" %}Last checked with NBC: {{ at }}.{% endblocktrans %}
+            {% endif %}
+            {% if nbc_from_cache %}
+                {% trans "Reused from the last check (cached for one hour)." %}
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,187 @@
+{% load i18n %}
+{% comment %}
+    "Exchange Rate Calendar" of the Settings -> General "Exchange Rate" card.
+
+    Renders a clean 7-column month grid (see
+    payroll.views.tax_views._build_exchange_rate_calendar) that shows the
+    USD -> KHR rate stored for every day, the automatic resolution of the 15th
+    (a weekend or public-holiday 15th rolls back to the closest working day
+    before it) and the day whose rate is currently applied to the payroll
+    calculation.
+
+    Cambodian calendar styling: the week starts on Sunday, Saturdays, Sundays
+    and public holidays (the Cambodian holiday table of
+    payroll.methods.cambodia_calendar merged with Settings -> Holidays) show
+    their day number in red and print the holiday name underneath.
+
+    The month navigation and the "set the rate of a day" form refresh only this
+    fragment with HTMX (payroll.views.tax_views.settings_exchange_rate_calendar),
+    so browsing the calendar never reloads the whole System Preferences page.
+{% endcomment %}
+<div id="nbcExchangeRateCalendar"
+    class="border border-[#ebebeb] rounded-xl overflow-hidden shadow-sm bg-white mt-4">
+    <div class="px-5 py-3 border-b border-[#ebebeb] bg-[#f9fafb]">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-center gap-2 text-sm font-semibold text-[#333]">
+                <ion-icon name="calendar-number-outline" class="text-primary-600 text-lg"></ion-icon>
+                {% trans "Exchange Rate Calendar" %}
+                <span class="text-xs font-normal text-gray-500">({{ calendar_month_label }})</span>
+            </div>
+
+            {# -- Month picker: the calendar form of this card -- #}
+            <div class="flex items-center gap-2">
+                <button type="button" class="oh-btn oh-btn--light-bkg oh-btn--small"
+                    aria-label="{% trans 'Previous month' %}"
+                    hx-get="{% url 'settings-exchange-rate-calendar' %}"
+                    hx-vals='{"month": "{{ calendar_prev_month_value }}"}'
+                    hx-target="#nbcExchangeRateCalendar" hx-swap="outerHTML">
+                    <ion-icon name="chevron-back-outline" class="text-sm"></ion-icon>
+                </button>
+                <input type="month" name="month" value="{{ calendar_month_value }}" class="oh-input"
+                    style="height: 36px; width: 165px;" aria-label="{% trans 'Month' %}"
+                    hx-get="{% url 'settings-exchange-rate-calendar' %}"
+                    hx-target="#nbcExchangeRateCalendar" hx-swap="outerHTML"
+                    hx-trigger="change" hx-include="this">
+                <button type="button" class="oh-btn oh-btn--light-bkg oh-btn--small"
+                    aria-label="{% trans 'Next month' %}"
+                    hx-get="{% url 'settings-exchange-rate-calendar' %}"
+                    hx-vals='{"month": "{{ calendar_next_month_value }}"}'
+                    hx-target="#nbcExchangeRateCalendar" hx-swap="outerHTML">
+                    <ion-icon name="chevron-forward-outline" class="text-sm"></ion-icon>
+                </button>
+                {% if not calendar_is_current_month %}
+                <button type="button" class="oh-btn oh-btn--light-bkg oh-btn--small"
+                    hx-get="{% url 'settings-exchange-rate-calendar' %}"
+                    hx-target="#nbcExchangeRateCalendar" hx-swap="outerHTML">
+                    {% trans "Today" %}
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="px-3 py-3">
+        <table class="table-fixed w-full border-collapse">
+            <thead>
+                <tr class="text-xs font-medium text-gray-400">
+                    {% for name in calendar_day_names %}
+                    {# Saturday (last) and Sunday (first) are the Cambodian weekend -> red. #}
+                    <th class="py-1.5 text-center{% if forloop.first or forloop.last %} text-danger{% endif %}">{{ name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for week in calendar_weeks %}
+                <tr>
+                    {% for cell in week %}
+                    <td class="text-center align-top py-1.5 px-0.5">
+                        {% if cell.day %}
+                        <div class="flex flex-col items-center gap-0.5">
+                            {% if cell.is_15th %}
+                                {% if calendar_day_15_is_weekend %}
+                                <span class="inline-block w-7 h-7 leading-7 rounded-full bg-orange-100 text-orange-700 font-medium">{{ cell.day }}</span>
+                                {% else %}
+                                <span class="inline-block w-7 h-7 leading-7 rounded-full bg-green-100 text-green-700 font-medium">{{ cell.day }}</span>
+                                {% endif %}
+                            {% elif cell.is_resolved_working_day and calendar_day_15_is_weekend %}
+                            <span class="inline-block w-7 h-7 leading-7 rounded-full bg-blue-100 text-blue-700 font-medium">{{ cell.day }}</span>
+                            {% elif cell.is_today %}
+                            {# Today keeps its primary circle; weekend / holiday numbers turn red inside it. #}
+                            <span class="inline-block w-7 h-7 leading-7 rounded-full bg-primary-100 font-medium{% if cell.is_weekend or cell.holiday_names %} text-danger{% else %} text-primary-700{% endif %}">{{ cell.day }}</span>
+                            {% elif cell.is_weekend or cell.holiday_names %}
+                            <span class="inline-block w-7 h-7 leading-7 font-medium text-danger">{{ cell.day }}</span>
+                            {% else %}
+                            <span class="inline-block w-7 h-7 leading-7">{{ cell.day }}</span>
+                            {% endif %}
+                            {% if cell.holiday_names %}
+                            <span class="max-w-full px-0.5 text-center text-[0.6rem] leading-tight font-medium text-danger"
+                                title="{{ cell.holiday_names|join:', ' }}">{{ cell.holiday_names|join:', '|truncatechars:24 }}</span>
+                            {% endif %}
+                            {% if cell.rate %}
+                            <span class="text-[0.625rem] leading-3 font-medium {% if cell.is_applied %}text-success{% else %}text-gray-500{% endif %}"
+                                title="{% if cell.source == 'nbc' %}{% trans 'National Bank of Cambodia (automatic)' %}{% else %}{% trans 'Manual entry' %}{% endif %}">
+                                {{ cell.rate|floatformat:2 }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-gray-300">-</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500">
+            <div class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-green-100 border border-green-300"></span>{% trans "15th - working day" %}</div>
+            <div class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-orange-100 border border-orange-300"></span>{% trans "15th - weekend / public holiday" %}</div>
+            <div class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-blue-100 border border-blue-300"></span>{% trans "Resolved working day" %}</div>
+            <div class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-primary-100 border border-primary-300"></span>{% trans "Today" %}</div>
+            {# The weekend / public holiday day number is printed as red text, so the swatch is red text too. #}
+            <div class="flex items-center gap-1.5"><span class="font-medium text-danger leading-none">15</span>{% trans "Saturday, Sunday or public holiday" %}</div>
+            {# The rate applied to the payroll calculation is printed in green. #}
+            <div class="flex items-center gap-1.5"><span class="text-[0.625rem] font-medium text-success leading-none">4053.00</span>{% trans "Rate applied to the payroll calculation" %}</div>
+        </div>
+
+        {% if calendar_month_holidays %}
+        <div class="mt-2 text-xs text-gray-500">
+            <span class="font-semibold text-[#333]">{% trans "Public holidays this month" %}:</span>
+            {% for holiday in calendar_month_holidays %}
+            <span class="ml-1 text-danger" title="{{ holiday.names|join:', ' }}">{{ holiday.date|date:'d M' }} &ndash; {{ holiday.names|join:' / ' }}</span>{% if not forloop.last %}<span class="text-gray-300"> | </span>{% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if calendar_day_15_is_weekend %}
+        <div class="mt-2 text-xs text-gray-500">
+            {% blocktrans with requested=calendar_requested_date|date:"d F Y" working=calendar_working_day_date|date:"d F Y" %}The 15th ({{ requested }}) is not a working day (weekend or public holiday), so the rate of the closest working day before it ({{ working }}) is used.{% endblocktrans %}
+        </div>
+        {% endif %}
+
+    </div>
+    {% if perms.payroll.change_payrollsettings %}
+    {# -- Set the rate of one explicit day (the calendar's rate form) -- #}
+    <div class="border-t border-[#ebebeb] bg-[#f9fafb] px-5 py-3">
+        <form hx-post="{% url 'settings-exchange-rate-view' %}"
+            hx-target="#nbcExchangeRateContainer" hx-swap="outerHTML" class="oh-form">
+            {% csrf_token %}
+            <input type="hidden" name="month" value="{{ calendar_month_value }}">
+            {# One toolbar row: section title left, field groups right, uniform 36px height. #}
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span class="flex items-center gap-1.5 text-sm font-semibold text-[#333] mr-auto whitespace-nowrap">
+                    <ion-icon name="create-outline" class="text-primary-600"></ion-icon>
+                    {% trans "Set the exchange rate of a day" %}
+                </span>
+                <div class="flex items-center gap-1.5 whitespace-nowrap">
+                    <label class="text-xs font-medium text-gray-500" for="calendarEffectiveDate">
+                        {% trans "Effective date" %}
+                    </label>
+                    <input type="date" id="calendarEffectiveDate" name="effective_date" class="oh-input"
+                        style="height: 36px; width: 165px;"
+                        value="{{ calendar_default_effective_date|date:'Y-m-d' }}"
+                        max="{{ current_date|date:'Y-m-d' }}"
+                        title="{% trans 'The working day the rate is valid for (never in the future).' %}">
+                </div>
+                <div class="flex items-center gap-1.5 whitespace-nowrap">
+                    <label class="text-xs font-medium text-gray-500" for="calendarRateInput">
+                        {% trans "1 USD =" %}
+                    </label>
+                    <input type="number" id="calendarRateInput" name="usd_to_khr_rate" class="oh-input"
+                        style="height: 36px; width: 130px;"
+                        step="0.01" min="0.01" placeholder="{% trans 'e.g. 4053.00' %}"
+                        value="{{ exchange_rate|default_if_none:'' }}" required>
+                    <span class="text-xs font-medium text-gray-500">{% trans "KHR" %}</span>
+                </div>
+                <button type="submit"
+                    class="oh-btn oh-btn--secondary oh-btn--small flex items-center justify-center gap-1 whitespace-nowrap"
+                    style="height: 36px; padding: 0 1rem;">
+                    <ion-icon name="save-outline" class="text-sm"></ion-icon>
+                    {% trans "Save rate" %}
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+</div>

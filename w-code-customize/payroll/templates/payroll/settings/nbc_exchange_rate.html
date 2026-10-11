@@ -1,0 +1,186 @@
+{% load i18n %}
+{% comment %}
+    "Exchange Rate" card of Settings -> General (System Preferences).
+    The active USD -> KHR rate is used by the Cambodia salary tax and
+    NSSF pension calculation. HR can update it by hand or apply the official
+    National Bank of Cambodia (NBC) rate of the 15th of the month.
+{% endcomment %}
+<div id="nbcExchangeRateContainer" class="mb-5">
+    {% if messages %}
+    <div class="oh-alert-container mb-3">
+        {% for message in messages %}
+        <div class="oh-alert oh-alert--animated {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="border border-[#ebebeb] rounded-xl overflow-hidden shadow-sm bg-white">
+                        <div class="px-5 py-4 border-b border-[#ebebeb] bg-[#f9fafb]">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+                    <ion-icon name="cash-outline" class="text-primary-600 text-xl"></ion-icon>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-[#1a1a1a]">{% trans "Exchange Rate" %}</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">
+                        {% trans "Official National Bank of Cambodia (NBC) rate used by the Cambodia salary tax and NSSF pension calculation." %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="px-5 py-5">
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div>
+                    <div class="flex items-baseline gap-2">
+                        {% if exchange_rate %}
+                        <span class="text-3xl font-extrabold text-primary-700">1 USD = {{ exchange_rate|floatformat:2 }} KHR</span>
+                        {% else %}
+                        <span class="text-xl font-semibold text-danger">{% trans "No exchange rate created yet" %}</span>
+                        {% endif %}
+                    </div>
+                    {% with latest=rate_history|first %}
+                    {% if latest %}
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-sm text-gray-500">{% blocktrans with day=latest.effective_date|date:"d F Y" %}Applied on {{ day }}{% endblocktrans %}</span>
+                        <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                        <span class="text-xs font-medium {% if latest.source == 'nbc' %}text-success{% else %}text-[#6b7280]{% endif %}">
+                            {% if latest.source == "nbc" %}{% trans "NBC (automatic)" %}{% else %}{% trans "Manual entry" %}{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                <div class="sm:text-right">
+                    <div class="text-xs text-gray-400 uppercase tracking-wider">{% trans "Current date" %}</div>
+                    <div class="text-sm font-semibold text-[#333]">{{ current_date|date:"M d, Y" }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if perms.payroll.change_payrollsettings %}
+        {# -- Simple basic update form, always visible -- #}
+        <div class="border-t border-[#ebebeb]">
+            <div class="px-5 py-4">
+                <form method="post" action="{% url 'settings-exchange-rate-view' %}"
+                    hx-post="{% url 'settings-exchange-rate-view' %}"
+                    hx-target="#nbcExchangeRateContainer" hx-swap="outerHTML">
+                    {% csrf_token %}
+                    <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+                        <div class="flex-1">
+                            <label for="{{ rate_form.usd_to_khr_rate.id_for_label }}"
+                                class="block text-sm font-medium text-[#333] mb-1">
+                                {% if exchange_rate %}
+                                    {% trans "New exchange rate (1 USD = ? KHR)" %}
+                                {% else %}
+                                    {% trans "Create Exchange Rate" %}
+                                {% endif %}
+                            </label>
+                            {{ rate_form.usd_to_khr_rate }}
+                            {% for error in rate_form.usd_to_khr_rate.errors %}
+                            <div class="text-xs text-danger mt-1">{{ error }}</div>
+                            {% endfor %}
+                            <div class="text-xs text-gray-500 mt-1">
+                                {% blocktrans with day=current_date|date:"d F Y" %}Applies from {{ day }} for the Cambodia salary tax and NSSF pension calculation.{% endblocktrans %}
+                            </div>
+                        </div>
+                        <button type="submit"
+                            class="oh-btn oh-btn--primary oh-btn--small h-10 flex items-center gap-1">
+                            <ion-icon name="save-outline" class="text-sm"></ion-icon>
+                            {% trans "Save" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+
+        {# -- Day-15 automatic schedule info -- #}
+        <div class="px-5 py-4 border-t border-[#ebebeb] bg-[#f9fafb]">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="space-y-1.5">
+                    <div class="flex items-center gap-2 text-sm font-semibold text-[#333]">
+                        <ion-icon name="calendar-outline" class="text-primary-600 text-lg"></ion-icon>
+                        {% blocktrans with requested=day_15_date|date:"m/d/y" %}Automatic NBC fetch scheduled for {{ requested }}{% endblocktrans %}
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        {% if day_15_is_weekend %}
+                            {% blocktrans with working=working_day_date|date:"m/d/y" %}The 15th falls on a weekend, so the rate of the closest working day ({{ working }}) is used instead.{% endblocktrans %}
+                        {% else %}
+                            {% trans "The 15th is a working day (Monday - Friday); it will be used directly." %}
+                        {% endif %}
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        {% blocktrans with next_15=next_month_15|date:"m/d/y" next_working=next_working_day|date:"m/d/y" %}Next month: the 15th ({{ next_15 }}) resolves to {{ next_working }}.{% endblocktrans %}
+                        {% if next_preview_rate %}
+                            {% blocktrans with rate=next_preview_rate|floatformat:2 %}1 USD = {{ rate }} KHR (forecast){% endblocktrans %}
+                        {% else %}
+                            <span class="text-gray-400">{% trans "Next month rate will be fetched automatically." %}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {# -- Fetch from NBC button -- #}
+                <button class="oh-btn oh-btn--secondary oh-btn--small h-10 flex items-center gap-2"
+                    hx-post="{% url 'settings-exchange-rate-fetch-nbc' %}"
+                    hx-target="#nbcExchangeRateContainer" hx-swap="outerHTML" hx-indicator="#nbcFetchSpinner">
+                    <ion-icon name="cloud-download-outline" class="text-sm"></ion-icon>
+                    {% trans "Fetch from NBC" %}
+                    <span id="nbcFetchSpinner" class="htmx-indicator spinner-border spinner-border-sm"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    {# -- Exchange Rate Calendar (month grid + per-day rate form) -- #}
+    {% include "payroll/settings/nbc_exchange_calendar.html" %}
+
+
+    {# -- NBC panel (lazy-loaded via HTMX) -- #}
+    <div id="nbcExchangeRatePanel" class="border border-[#ebebeb] rounded-xl overflow-hidden shadow-sm bg-white mt-4">
+        <div class="px-4 py-3">
+            <div class="flex items-center gap-2 text-xs text-gray-500">
+                <span class="spinner-border spinner-border-sm"></span>
+                {% trans "Loading the official National Bank of Cambodia rates..." %}
+            </div>
+        </div>
+        <div hx-get="{% url 'settings-exchange-rate-nbc-panel' %}" hx-trigger="load"
+            hx-target="#nbcExchangeRatePanel" hx-swap="outerHTML"></div>
+    </div>
+
+    {# -- Recent history -- #}
+    {% if rate_history %}
+    <div class="border border-[#ebebeb] rounded-xl overflow-hidden shadow-sm bg-white mt-4">
+        <div class="px-5 py-3 border-b border-[#ebebeb] bg-[#f9fafb]">
+            <div class="text-sm font-semibold text-[#333]">{% trans "Recent Exchange Rate History" %}</div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr class="bg-[#f3f3f3]">
+                        <th class="text-xs text-[#666] font-medium py-2">{% trans "Effective Date" %}</th>
+                        <th class="text-xs text-[#666] font-medium py-2">{% trans "Rate (1 USD)" %}</th>
+                        <th class="text-xs text-[#666] font-medium py-2">{% trans "Source" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for history in rate_history %}
+                    <tr class="hover:bg-[#f9fafb]">
+                        <td class="text-xs py-2">{{ history.effective_date|date:"d F Y" }}</td>
+                        <td class="text-xs font-semibold py-2">{{ history.rate|floatformat:2 }} KHR</td>
+                        <td class="text-xs py-2">
+                            {% if history.source == "nbc" %}
+                                <span class="text-success">{% trans "National Bank of Cambodia (automatic)" %}</span>
+                            {% else %}
+                                <span class="text-[#6b7280]">{% trans "Manual entry" %}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
