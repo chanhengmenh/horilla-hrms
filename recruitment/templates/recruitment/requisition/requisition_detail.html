@@ -1,0 +1,313 @@
+{% extends 'index.html' %}
+{% load i18n static %}
+
+{% block content %}
+<div class="oh-wrapper" style="max-width: 1100px; margin: 0 auto; padding-bottom: 50px;">
+    <!-- Breadcrumb & Top Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-3 mt-2">
+        <a href="{% url 'staff-requisition-view' %}" class="text-muted text-decoration-none" style="font-size: 0.875rem;">
+            <ion-icon name="arrow-back-outline" style="vertical-align: -2px;"></ion-icon> {% trans "Back to Staff Requisitions" %}
+        </a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'staff-requisition-pdf' req.id %}" class="oh-btn oh-btn--secondary" target="_blank">
+                <ion-icon name="document-text-outline" class="me-1"></ion-icon>
+                {% trans "Download Official PDF Ticket (RMO-HRA-QF-001)" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert / Messages -->
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="oh-alert oh-alert--animated {% if message.tags == 'error' %}oh-alert--danger{% else %}oh-alert--{{ message.tags }}{% endif %} mb-2">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Requisition Ticket Card -->
+    <div class="oh-card" style="background: #ffffff; border-radius: 10px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden;">
+        <!-- Header -->
+        <div style="background: #1f2937; color: #ffffff; padding: 24px 32px; border-bottom: 3px solid #e54f38;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <span style="display: inline-block; background: #e54f38; color: #fff; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; margin-bottom: 6px;">
+                        FORM RMO-HRA-QF-001
+                    </span>
+                    <h2 style="font-size: 1.6rem; font-weight: 700; margin: 0; color: #ffffff;">
+                        {{ req.position_title }}
+                    </h2>
+                    <div style="font-size: 0.875rem; color: #9ca3af; margin-top: 4px;">
+                        Requisition Ticket: <strong>{{ req.requisition_code }}</strong> • Requested on {{ req.requested_date|date:"F d, Y" }}
+                    </div>
+                </div>
+                <div class="text-end">
+                    {% if req.status == 'approved' %}
+                        <span class="badge" style="background-color: #22c55e; color: #ffffff; font-size: 0.9rem; padding: 8px 16px; border-radius: 6px;">
+                            <ion-icon name="checkmark-done-circle-outline" style="vertical-align: -2px;"></ion-icon> {% trans "Approved by CEO" %}
+                        </span>
+                    {% elif req.status == 'reviewed_hr' %}
+                        <span class="badge" style="background-color: #3b82f6; color: #ffffff; font-size: 0.9rem; padding: 8px 16px; border-radius: 6px;">
+                            <ion-icon name="eye-outline" style="vertical-align: -2px;"></ion-icon> {% trans "Reviewed by HR" %}
+                        </span>
+                    {% elif req.status == 'rejected' %}
+                        <span class="badge" style="background-color: #ef4444; color: #ffffff; font-size: 0.9rem; padding: 8px 16px; border-radius: 6px;">
+                            <ion-icon name="close-circle-outline" style="vertical-align: -2px;"></ion-icon> {% trans "Rejected" %}
+                        </span>
+                    {% else %}
+                        <span class="badge" style="background-color: #f59e0b; color: #ffffff; font-size: 0.9rem; padding: 8px 16px; border-radius: 6px;">
+                            <ion-icon name="time-outline" style="vertical-align: -2px;"></ion-icon> {% trans "Submitted (Pending)" %}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div style="padding: 32px;">
+            <!-- 1. Position Details -->
+            <div class="mb-4">
+                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
+                    <span style="color: #e54f38;">1.</span> {% trans "Position Details" %}
+                </h5>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-3">
+                        <span class="text-muted small">{% trans "Position Requested" %}</span>
+                        <div class="fw-bold">{{ req.position_title }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="text-muted small">{% trans "Based Location" %}</span>
+                        <div class="fw-bold">{{ req.location }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="text-muted small">{% trans "Function / Division" %}</span>
+                        <div class="fw-bold">{{ req.function }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="text-muted small">{% trans "Department" %}</span>
+                        <div class="fw-bold">{{ req.department_id.department }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="text-muted small">{% trans "Headcount Requested" %}</span>
+                        <div class="fw-bold fs-5 text-primary">{{ req.headcount }} {% trans "Pax" %}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="text-muted small">{% trans "Job Position Linkage" %}</span>
+                        <div>{{ req.job_position_id.job_position|default:"None (New Role)" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Line Manager's Details -->
+            <div class="mb-4">
+                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
+                    <span style="color: #e54f38;">2.</span> {% trans "Line Manager's Details" %}
+                </h5>
+                <div class="row g-3 mt-1 p-3" style="background: #f9fafb; border-radius: 8px;">
+                    <div class="col-md-4">
+                        <span class="text-muted small">{% trans "Manager's Name" %}</span>
+                        <div class="fw-bold">{{ req.requested_by }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted small">{% trans "Manager's Position" %}</span>
+                        <div class="fw-bold">{{ req.manager_position }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted small">{% trans "Manager's Email" %}</span>
+                        <div class="fw-bold">{{ req.manager_email|default:"N/A" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Employment Status -->
+            <div class="mb-4">
+                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
+                    <span style="color: #e54f38;">3.</span> {% trans "Employment Status" %}
+                </h5>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-4">
+                        <span class="text-muted small">{% trans "Type of Employment" %}</span>
+                        <div class="fw-bold text-uppercase">{{ req.get_employment_type_display }}</div>
+                    </div>
+
+                    {% if req.employment_type == 'permanent' %}
+                    <div class="col-md-4">
+                        <span class="text-muted small">{% trans "Permanent Category" %}</span>
+                        <div class="fw-bold text-primary">{{ req.get_permanent_category_display }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted small">{% trans "Target Onboarding Date" %}</span>
+                        <div class="fw-bold">{{ req.target_onboarding_date|date:"F d, Y"|default:"Not specified" }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted small">{% trans "Position Level / Grade" %}</span>
+                        <div class="fw-bold">{{ req.position_level|default:"Standard" }}</div>
+                    </div>
+
+                    {% if req.permanent_category == 'replacement' %}
+                    <div class="col-md-12 p-3 mt-2" style="background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <span class="text-muted small">{% trans "Replacement For" %}</span>
+                                <div class="fw-bold text-danger">{{ req.replacement_for }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="text-muted small">{% trans "Reason(s) for Replacement" %}</span>
+                                <div>{{ req.replacement_reason }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="col-md-4">
+                        <span class="text-muted small">{% trans "Contract Term" %}</span>
+                        <div class="fw-bold">{{ req.get_contract_term_display|default:"Full Time" }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted small">{% trans "Period" %}</span>
+                        <div class="fw-bold">{{ req.period_from|date:"M d, Y" }} &rarr; {{ req.period_to|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="col-md-12">
+                        <span class="text-muted small">{% trans "Working Day & Hour" %}</span>
+                        <div class="fw-bold">{{ req.working_days_hours }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 4. Justification -->
+            <div class="mb-4">
+                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
+                    <span style="color: #e54f38;">4.</span> {% trans "Justification (Why is this position needed?)" %}
+                </h5>
+                <div class="p-3 mt-1" style="background: #f9fafb; border-radius: 8px; line-height: 1.6; white-space: pre-wrap;">{{ req.justification }}</div>
+            </div>
+
+            <!-- 5. Position Requirements -->
+            <div class="mb-4">
+                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
+                    <span style="color: #e54f38;">5.</span> {% trans "Position Requirements (refer to JD attached)" %}
+                </h5>
+                <div class="p-3 mt-1" style="background: #f9fafb; border-radius: 8px; line-height: 1.6; white-space: pre-wrap;">{{ req.position_requirements }}</div>
+
+                {% if req.job_description_file %}
+                <div class="mt-2">
+                    <span class="text-muted small">{% trans "Job Description Attachment:" %}</span>
+                    <a href="{{ req.job_description_file.url }}" target="_blank" class="ms-2 fw-bold text-primary">
+                        <ion-icon name="document-attach-outline"></ion-icon> {% trans "View Attached JD" %}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- 6. Approvals (4-Tier Sign-off Hierarchy) -->
+            <div class="mb-4">
+                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
+                    <span style="color: #e54f38;">6.</span> {% trans "Approvals & Sign-off Hierarchy" %}
+                </h5>
+                <div class="row g-3 mt-1">
+                    <!-- Tier 1: Requested by Hiring Manager -->
+                    <div class="col-md-3">
+                        <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
+                            <div class="badge bg-light text-dark mb-2">{% trans "Tier 1: Requester" %}</div>
+                            <div class="fw-bold">{{ req.requested_by }}</div>
+                            <div class="small text-muted">{{ req.manager_position }}</div>
+                            <div class="small text-success mt-2">
+                                <ion-icon name="checkmark-circle-outline"></ion-icon> {% trans "Submitted" %}: {{ req.requested_date|date:"M d, Y" }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tier 2: Checked by HR Rep -->
+                    <div class="col-md-3">
+                        <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
+                            <div class="badge bg-light text-dark mb-2">{% trans "Tier 2: Checked HR Rep" %}</div>
+                            <div class="fw-bold">{{ req.hr_reviewer|default:"Ms. Sin Thida" }}</div>
+                            <div class="small text-muted">{% trans "HR & Admin Manager" %}</div>
+                            {% if req.hr_reviewed_date %}
+                            <div class="small text-success mt-2">
+                                <ion-icon name="checkmark-circle-outline"></ion-icon> {% trans "Reviewed" %}: {{ req.hr_reviewed_date|date:"M d, Y" }}
+                            </div>
+                            {% else %}
+                            <div class="small text-muted mt-2">{% trans "Pending Review" %}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Tier 3: HR Consultant -->
+                    <div class="col-md-3">
+                        <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
+                            <div class="badge bg-light text-dark mb-2">{% trans "Tier 3: HR Consultant" %}</div>
+                            <div class="fw-bold">{% trans "Mr. Ith Vithou" %}</div>
+                            <div class="small text-muted">{% trans "HR Consultant" %}</div>
+                            <div class="small text-muted mt-2">{% trans "Advisory Sign-off" %}</div>
+                        </div>
+                    </div>
+
+                    <!-- Tier 4: Approved by CEO -->
+                    <div class="col-md-3">
+                        <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
+                            <div class="badge bg-light text-dark mb-2">{% trans "Tier 4: Approved by CEO" %}</div>
+                            <div class="fw-bold">{{ req.approved_by|default:"Mr. KHIEU Sarvorneat" }}</div>
+                            <div class="small text-muted">{% trans "Chief Executive Officer" %}</div>
+                            {% if req.approved_date %}
+                            <div class="small text-success mt-2">
+                                <ion-icon name="checkmark-done-circle-outline"></ion-icon> {% trans "Approved" %}: {{ req.approved_date|date:"M d, Y" }}
+                            </div>
+                            {% else %}
+                            <div class="small text-muted mt-2">{% trans "Pending Approval" %}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workflow Action Box (For HR Reviewer or CEO Approver) -->
+            {% if is_auditor or is_executive %}
+            <div class="p-4 mt-4" style="background: #f8fafc; border-radius: 8px; border: 1px solid #cbd5e1;">
+                <h6 class="fw-bold text-dark mb-3">
+                    <ion-icon name="options-outline" style="vertical-align: -2px;"></ion-icon>
+                    {% trans "Administrative & Approval Actions" %}
+                </h6>
+                <div class="d-flex flex-wrap gap-2">
+                    {% if is_auditor and req.status == 'submitted' %}
+                    <form method="post" action="{% url 'staff-requisition-status' req.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="hr_review" />
+                        <button type="submit" class="oh-btn oh-btn--primary">
+                            <ion-icon name="checkmark-outline" class="me-1"></ion-icon>
+                            {% trans "Mark Checked by HR Representative" %}
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if is_executive and req.status != 'approved' and req.status != 'rejected' %}
+                    <form method="post" action="{% url 'staff-requisition-status' req.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="ceo_approve" />
+                        <button type="submit" class="oh-btn oh-btn--success" style="background: #16a34a; color: white;">
+                            <ion-icon name="checkmark-done-outline" class="me-1"></ion-icon>
+                            {% trans "Approve as Executive / CEO" %}
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if req.status != 'rejected' and req.status != 'approved' %}
+                    <form method="post" action="{% url 'staff-requisition-status' req.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reject" />
+                        <button type="submit" class="oh-btn oh-btn--danger" onclick="return confirm('{% trans "Are you sure you want to reject this requisition?" %}');">
+                            <ion-icon name="close-outline" class="me-1"></ion-icon>
+                            {% trans "Reject Requisition" %}
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

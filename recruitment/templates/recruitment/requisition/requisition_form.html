@@ -1,0 +1,346 @@
+{% extends 'index.html' %}
+{% load i18n static %}
+
+{% block content %}
+<div class="oh-wrapper" style="max-width: 1100px; margin: 0 auto; padding-bottom: 50px;">
+    <!-- Breadcrumb & Back -->
+    <div class="mb-3 mt-2">
+        <a href="{% url 'staff-requisition-view' %}" class="text-muted text-decoration-none" style="font-size: 0.875rem;">
+            <ion-icon name="arrow-back-outline" style="vertical-align: -2px;"></ion-icon> {% trans "Back to Requisitions" %}
+        </a>
+    </div>
+
+    <!-- Alert / Messages -->
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="oh-alert oh-alert--animated {% if message.tags == 'error' %}oh-alert--danger{% else %}oh-alert--{{ message.tags }}{% endif %} mb-2">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Card Container -->
+    <div class="oh-card" style="background: #ffffff; border-radius: 10px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden;">
+        <!-- Header Banner with Form Code -->
+        <div style="background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: #ffffff; padding: 24px 32px; border-bottom: 3px solid #e54f38;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <span style="display: inline-block; background: #e54f38; color: #fff; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; margin-bottom: 6px;">
+                        FORM RMO-HRA-QF-001
+                    </span>
+                    <h2 style="font-size: 1.6rem; font-weight: 700; margin: 0; color: #ffffff;">
+                        {% trans "Staff Requisition Form" %}
+                    </h2>
+                </div>
+                <div class="text-end">
+                    <span class="badge" style="background-color: #374151; color: #e5e7eb; font-size: 0.8rem; padding: 6px 12px; border-radius: 6px;">
+                        <ion-icon name="shield-checkmark-outline" style="vertical-align: -2px;"></ion-icon>
+                        {% trans "Executive Authorization Mode" %}
+                    </span>
+                </div>
+            </div>
+            <!-- Mandatory Warning Banner -->
+            <div style="margin-top: 14px; background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; padding: 8px 14px; border-radius: 4px; font-size: 0.85rem; color: #fca5a5;">
+                <strong>{% trans "Note:" %}</strong> {% trans "All fields are mandatory; requisition will be considered only if this form is fully completed." %}
+            </div>
+        </div>
+
+        <!-- Form Body -->
+        <form method="post" enctype="multipart/form-data" style="padding: 32px;">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger mb-4" style="border-radius: 8px;">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- SECTION 1: POSITION DETAILS -->
+            <div class="mb-4">
+                <div style="border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; margin-bottom: 20px;">
+                    <h4 style="font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0;">
+                        <span style="color: #e54f38;">1.</span> {% trans "Position Details" %}
+                    </h4>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            {% trans "* Position to be requested" %}
+                        </label>
+                        {{ form.position_title }}
+                        {% if form.position_title.errors %}
+                        <div class="text-danger small mt-1">{{ form.position_title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            {% trans "* Based Location" %}
+                        </label>
+                        {{ form.location }}
+                        {% if form.location.errors %}
+                        <div class="text-danger small mt-1">{{ form.location.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            {% trans "* Function / Division" %}
+                        </label>
+                        {{ form.function }}
+                        {% if form.function.errors %}
+                        <div class="text-danger small mt-1">{{ form.function.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            {% trans "* Department" %}
+                        </label>
+                        {{ form.department_id }}
+                        {% if form.department_id.errors %}
+                        <div class="text-danger small mt-1">{{ form.department_id.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            {% trans "* Headcount Requested" %}
+                        </label>
+                        {{ form.headcount }}
+                        {% if form.headcount.errors %}
+                        <div class="text-danger small mt-1">{{ form.headcount.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label" style="font-size: 0.875rem; color: #4b5563;">
+                            {% trans "Existing Job Position (Optional linkage)" %}
+                        </label>
+                        {{ form.job_position_id }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: LINE MANAGER'S DETAILS (PRE-FILLED) -->
+            <div class="mb-4">
+                <div style="border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; margin-bottom: 20px;">
+                    <h4 style="font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0;">
+                        <span style="color: #e54f38;">2.</span> {% trans "Line Manager's Details (Hiring Manager / Executive)" %}
+                    </h4>
+                </div>
+
+                <div class="row g-3 p-3" style="background: #f9fafb; border-radius: 8px; border: 1px dashed #d1d5db;">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small" style="margin-bottom: 2px;">{% trans "* Manager's Name" %}</label>
+                        <div style="font-weight: 600; font-size: 1rem; color: #111827;">{{ manager_name }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small" style="margin-bottom: 2px;">{% trans "Position / Title" %}</label>
+                        <div style="font-weight: 600; font-size: 1rem; color: #111827;">{{ manager_position|default:"Head of Department" }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small" style="margin-bottom: 2px;">{% trans "Manager's Email" %}</label>
+                        <div style="font-weight: 600; font-size: 1rem; color: #111827;">{{ manager_email }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: EMPLOYMENT STATUS -->
+            <div class="mb-4">
+                <div style="border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; margin-bottom: 20px;">
+                    <h4 style="font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0;">
+                        <span style="color: #e54f38;">3.</span> {% trans "Employment Status" %}
+                    </h4>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                        {% trans "* Type of Employment" %}
+                    </label>
+                    <div class="d-flex gap-4 p-2" style="background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="employment_type" id="type_permanent" value="permanent" {% if form.employment_type.value == 'permanent' or not form.employment_type.value %}checked{% endif %} onchange="toggleEmploymentFields()">
+                            <label class="form-check-label fw-semibold" for="type_permanent">{% trans "PERMANENT" %}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="employment_type" id="type_contract" value="contract" {% if form.employment_type.value == 'contract' %}checked{% endif %} onchange="toggleEmploymentFields()">
+                            <label class="form-check-label fw-semibold" for="type_contract">{% trans "CONTRACT" %}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="employment_type" id="type_intern" value="intern" {% if form.employment_type.value == 'intern' %}checked{% endif %} onchange="toggleEmploymentFields()">
+                            <label class="form-check-label fw-semibold" for="type_intern">{% trans "INTERN" %}</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PERMANENT SUBFIELDS -->
+                <div id="permanent_fields_panel" class="p-3 mb-3" style="background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe;">
+                    <h6 style="font-weight: 700; color: #1e40af; margin-bottom: 12px;">{% trans "Permanent Headcount Category & Terms" %}</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                                {% trans "* Permanent Category" %}
+                            </label>
+                            {{ form.permanent_category }}
+                            {% if form.permanent_category.errors %}
+                            <div class="text-danger small mt-1">{{ form.permanent_category.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                                {% trans "Target Onboarding Date" %}
+                            </label>
+                            {{ form.target_onboarding_date }}
+                            {% if form.target_onboarding_date.errors %}
+                            <div class="text-danger small mt-1">{{ form.target_onboarding_date.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label" style="font-size: 0.875rem;">
+                                {% trans "Position Level / Grade" %}
+                            </label>
+                            {{ form.position_level }}
+                        </div>
+
+                        <!-- REPLACEMENT FIELDS -->
+                        <div class="col-12" id="replacement_details_row" style="display: none;">
+                            <div class="p-3" style="background: #ffffff; border-radius: 6px; border: 1px solid #93c5fd;">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                                            {% trans "* Replacement for (Employee Name)" %}
+                                        </label>
+                                        {{ form.replacement_for }}
+                                        {% if form.replacement_for.errors %}
+                                        <div class="text-danger small mt-1">{{ form.replacement_for.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                                            {% trans "* Reason(s) for Replacement" %}
+                                        </label>
+                                        {{ form.replacement_reason }}
+                                        {% if form.replacement_reason.errors %}
+                                        <div class="text-danger small mt-1">{{ form.replacement_reason.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTRACT / INTERN SUBFIELDS -->
+                <div id="contract_fields_panel" class="p-3 mb-3" style="background: #fffbeb; border-radius: 8px; border: 1px solid #fde68a; display: none;">
+                    <h6 style="font-weight: 700; color: #92400e; margin-bottom: 12px;">{% trans "Contract / Intern Details" %}</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                                {% trans "Contract Term" %}
+                            </label>
+                            {{ form.contract_term }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                                {% trans "Employment Period From" %}
+                            </label>
+                            {{ form.period_from }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                                {% trans "To" %}
+                            </label>
+                            {{ form.period_to }}
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                                {% trans "Working Day & Hour" %}
+                            </label>
+                            {{ form.working_days_hours }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: JUSTIFICATION -->
+            <div class="mb-4">
+                <div style="border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; margin-bottom: 14px;">
+                    <h4 style="font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0;">
+                        <span style="color: #e54f38;">4.</span> {% trans "Justification (Why is this position needed?)" %}
+                    </h4>
+                </div>
+                {{ form.justification }}
+                {% if form.justification.errors %}
+                <div class="text-danger small mt-1">{{ form.justification.errors }}</div>
+                {% endif %}
+            </div>
+
+            <!-- SECTION 5: POSITION REQUIREMENTS & JD ATTACHMENT -->
+            <div class="mb-4">
+                <div style="border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; margin-bottom: 14px;">
+                    <h4 style="font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0;">
+                        <span style="color: #e54f38;">5.</span> {% trans "Position Requirements (refer to JD attached)" %}
+                    </h4>
+                </div>
+                {{ form.position_requirements }}
+                {% if form.position_requirements.errors %}
+                <div class="text-danger small mt-1">{{ form.position_requirements.errors }}</div>
+                {% endif %}
+
+                <div class="mt-3">
+                    <label class="form-label" style="font-size: 0.875rem; color: #4b5563;">
+                        <ion-icon name="attach-outline" style="vertical-align: -2px;"></ion-icon>
+                        {% trans "Attach Job Description (JD) Document" %}
+                    </label>
+                    {{ form.job_description_file }}
+                </div>
+            </div>
+
+            <!-- SUBMIT BUTTONS -->
+            <div class="d-flex justify-content-end gap-3 mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
+                <a href="{% url 'staff-requisition-view' %}" class="oh-btn oh-btn--light">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="oh-btn oh-btn--primary px-4 py-2" style="font-size: 1rem; font-weight: 600;">
+                    <ion-icon name="paper-plane-outline" class="me-1"></ion-icon>
+                    {% trans "Submit Requisition & Generate Ticket" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleEmploymentFields() {
+    var type = $('input[name="employment_type"]:checked').val();
+    if (type === 'permanent') {
+        $('#permanent_fields_panel').show();
+        $('#contract_fields_panel').hide();
+    } else {
+        $('#permanent_fields_panel').hide();
+        $('#contract_fields_panel').show();
+    }
+    toggleReplacementDetails();
+}
+
+function toggleReplacementDetails() {
+    var cat = $('[name="permanent_category"]').val();
+    if (cat === 'replacement') {
+        $('#replacement_details_row').show();
+    } else {
+        $('#replacement_details_row').hide();
+    }
+}
+
+$(document).ready(function() {
+    toggleEmploymentFields();
+    $('[name="permanent_category"]').on('change', toggleReplacementDetails);
+});
+</script>
+{% endblock %}

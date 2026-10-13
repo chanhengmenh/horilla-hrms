@@ -32,7 +32,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from base.horilla_company_manager import HorillaCompanyManager
-from base.models import Company, JobPosition
+from base.models import Company, Department, JobPosition
 from employee.models import Employee
 from horilla.horilla_middlewares import _thread_locals
 from horilla.models import HorillaModel, upload_path
@@ -2110,3 +2110,246 @@ class LinkedInAccount(HorillaModel):
             path="is_active_toggle.html",
             context={"instance": self, "url": url},
         )
+
+
+class StaffRequisition(HorillaModel):
+    """
+    RMO Staff Requisition Model (Quality Form RMO-HRA-QF-001).
+    Headcount requisition requested exclusively by Executive Leadership / Department Heads.
+    """
+
+    FORM_CODE = "RMO-HRA-QF-001"
+
+    EMPLOYMENT_TYPE_CHOICES = (
+        ("permanent", _("Permanent")),
+        ("contract", _("Contract")),
+        ("intern", _("Intern")),
+    )
+
+    PERMANENT_CATEGORY_CHOICES = (
+        ("budgeted", _("Additional Headcount Budgeted")),
+        ("non_budgeted", _("Additional Headcount - Non-Budgeted")),
+        ("replacement", _("Replacement")),
+    )
+
+    CONTRACT_TERM_CHOICES = (
+        ("full_time", _("Full Time")),
+        ("part_time", _("Part Time")),
+    )
+
+    STATUS_CHOICES = (
+        ("draft", _("Draft")),
+        ("submitted", _("Submitted")),
+        ("reviewed_hr", _("Reviewed by HR")),
+        ("approved", _("Approved by CEO")),
+        ("rejected", _("Rejected")),
+        ("cancelled", _("Cancelled")),
+    )
+
+    requisition_code = models.CharField(
+        max_length=50,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name=_("Requisition Code"),
+    )
+    position_title = models.CharField(
+        max_length=150,
+        verbose_name=_("Position to be Requested"),
+    )
+    job_position_id = models.ForeignKey(
+        JobPosition,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="staff_requisitions",
+        verbose_name=_("Job Position"),
+    )
+    department_id = models.ForeignKey(
+        Department,
+        on_delete=models.PROTECT,
+        related_name="staff_requisitions",
+        verbose_name=_("Department"),
+    )
+    location = models.CharField(
+        max_length=150,
+        verbose_name=_("Based Location"),
+    )
+    function = models.CharField(
+        max_length=150,
+        verbose_name=_("Function"),
+    )
+    company_id = models.ForeignKey(
+        Company,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name=_("Company"),
+    )
+    headcount = models.PositiveIntegerField(
+        default=1,
+        verbose_name=_("Headcount Requested"),
+    )
+
+    # Line Manager's Details (Hiring Manager / Executive)
+    requested_by = models.ForeignKey(
+        Employee,
+        on_delete=models.PROTECT,
+        related_name="staff_requisitions_requested",
+        verbose_name=_("Manager's Name"),
+    )
+    manager_position = models.CharField(
+        max_length=150,
+        verbose_name=_("Manager's Position"),
+    )
+    manager_email = models.EmailField(
+        null=True,
+        blank=True,
+        verbose_name=_("Manager's Email"),
+    )
+
+    # Employment Status Details
+    employment_type = models.CharField(
+        max_length=20,
+        choices=EMPLOYMENT_TYPE_CHOICES,
+        default="permanent",
+        verbose_name=_("Employment Type"),
+    )
+    permanent_category = models.CharField(
+        max_length=30,
+        choices=PERMANENT_CATEGORY_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name=_("Permanent Category"),
+    )
+    replacement_for = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True,
+        verbose_name=_("Replacement For"),
+    )
+    replacement_reason = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_("Reason(s) for Replacement"),
+    )
+    target_onboarding_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_("Target Onboarding Date"),
+    )
+    position_level = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        verbose_name=_("Position Level"),
+    )
+
+    # Contract / Intern Details
+    contract_term = models.CharField(
+        max_length=20,
+        choices=CONTRACT_TERM_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name=_("Contract Term"),
+    )
+    period_from = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_("Employment Period From"),
+    )
+    period_to = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_("Employment Period To"),
+    )
+    working_days_hours = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True,
+        verbose_name=_("Working Day & Hour"),
+    )
+
+    # Justification & Requirements
+    justification = models.TextField(
+        verbose_name=_("Justification (Why is this position needed?)"),
+    )
+    position_requirements = models.TextField(
+        verbose_name=_("Position Requirements / Responsibilities"),
+    )
+    job_description_file = models.FileField(
+        upload_to="recruitment/requisition_jds/",
+        null=True,
+        blank=True,
+        verbose_name=_("Job Description (JD) Attachment"),
+    )
+
+    # Approvals & Governance Workflow
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="submitted",
+        verbose_name=_("Status"),
+    )
+    requested_date = models.DateField(
+        default=tz.now,
+        verbose_name=_("Requested Date"),
+    )
+    hr_reviewer = models.ForeignKey(
+        Employee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="staff_requisitions_reviewed",
+        verbose_name=_("Checked by HR Representative"),
+    )
+    hr_reviewed_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_("HR Checked Date"),
+    )
+    hr_remarks = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_("HR Remarks"),
+    )
+    approved_by = models.ForeignKey(
+        Employee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="staff_requisitions_approved",
+        verbose_name=_("Approved by (Executive)"),
+    )
+    approved_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_("Approved Date"),
+    )
+    approval_remarks = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_("Approval Remarks"),
+    )
+
+    objects = HorillaCompanyManager()
+
+    class Meta:
+        verbose_name = _("Staff Requisition")
+        verbose_name_plural = _("Staff Requisitions")
+        ordering = ["-id"]
+        permissions = [
+            ("request_staffrequisition", "Can request staff requisition (Executive / HOD only)"),
+            ("audit_staffrequisition", "Can audit staff requisitions (HR & Management)"),
+        ]
+
+    def __str__(self):
+        return f"{self.requisition_code or f'REQ-{self.id}'} - {self.position_title} ({self.department_id})"
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new and not self.requisition_code:
+            self.requisition_code = f"REQ-{tz.now().year}-{self.pk:04d}"
+            super().save(update_fields=["requisition_code"])
+

@@ -28,9 +28,35 @@ from recruitment.forms import QuestionForm, RecruitmentCreationForm, StageCreati
 from recruitment.models import Candidate, Recruitment, RecruitmentSurvey, Stage
 from recruitment.views import actions
 from recruitment.views import dashboard as views_dashboard
-from recruitment.views import linkedin, search, surveys, views
+from recruitment.views import linkedin, requisition, search, surveys, views
 
 urlpatterns = [
+    # Staff Requisitions (RMO-HRA-QF-001)
+    path(
+        "staff-requisitions/",
+        requisition.staff_requisition_list,
+        name="staff-requisition-view",
+    ),
+    path(
+        "staff-requisition-create/",
+        requisition.staff_requisition_create,
+        name="staff-requisition-create",
+    ),
+    path(
+        "staff-requisition-detail/<int:pk>/",
+        requisition.staff_requisition_detail,
+        name="staff-requisition-detail",
+    ),
+    path(
+        "staff-requisition-pdf/<int:pk>/",
+        requisition.staff_requisition_pdf,
+        name="staff-requisition-pdf",
+    ),
+    path(
+        "staff-requisition-status/<int:pk>/",
+        requisition.staff_requisition_status_update,
+        name="staff-requisition-status",
+    ),
     path(
         "interview-view/", interview.InterviewViewPage.as_view(), name="interview-view"
     ),

@@ -823,3 +823,176 @@ def recruitment_funnel_drilldown(
         rows=rows,
         truncated=total > len(rows),
     )
+
+
+def staff_requisition_summary(filters: ReportFilters) -> dict:
+    from django.db.models import Count, Sum
+    from recruitment.models import StaffRequisition
+
+    qs = StaffRequisition.objects.filter(is_active=True)
+
+    if filters.from_date:
+        qs = qs.filter(requested_date__gte=filters.from_date)
+    if filters.to_date:
+        qs = qs.filter(requested_date__lte=filters.to_date)
+    if filters.department_id:
+        qs = qs.filter(department_id_id=filters.department_id)
+    if filters.company_id:
+        qs = qs.filter(company_id_id=filters.company_id)
+
+    total_requisitions = qs.count()
+    total_headcount = qs.aggregate(s=Sum("headcount"))["s"] or 0
+    budgeted_qs = qs.filter(employment_type="permanent", permanent_category="budgeted")
+    budgeted_headcount = budgeted_qs.aggregate(s=Sum("headcount"))["s"] or 0
+    non_budgeted_qs = qs.filter(employment_type="permanent", permanent_category="non_budgeted")
+    non_budgeted_headcount = non_budgeted_qs.aggregate(s=Sum("headcount"))["s"] or 0
+    replacement_qs = qs.filter(employment_type="permanent", permanent_category="replacement")
+    replacement_headcount = replacement_qs.aggregate(s=Sum("headcount"))["s"] or 0
+    contract_intern_qs = qs.filter(employment_type__in=["contract", "intern"])
+    contract_intern_headcount = contract_intern_qs.aggregate(s=Sum("headcount"))["s"] or 0
+
+    approved_qs = qs.filter(status="approved")
+    approved_headcount = approved_qs.aggregate(s=Sum("headcount"))["s"] or 0
+    pending_count = qs.filter(status="submitted").count()
+    reviewed_count = qs.filter(status="reviewed_hr").count()
+    approved_count = approved_qs.count()
+    rejected_count = qs.filter(status="rejected").count()
+
+    approval_pct = (
+        round(approved_count / total_requisitions * 100, 1)
+        if total_requisitions
+        else 0.0
+    )
+
+    kpis = [
+        {
+            "label": _("Total Requisitions"),
+            "value": total_requisitions,
+            "hint": _("Headcount requests in period"),
+        },
+        {
+            "label": _("Total Headcount Requested"),
+            "value": total_headcount,
+            "hint": _("Sum of requested headcount"),
+        },
+        {
+            "label": _("Budgeted Headcount"),
+            "value": budgeted_headcount,
+            "hint": _("Permanent planned positions"),
+        },
+        {
+            "label": _("Non-Budgeted Headcount"),
+            "value": non_budgeted_headcount,
+            "hint": _("Unbudgeted exceptions"),
+        },
+        {
+            "label": _("Replacement Headcount"),
+            "value": replacement_headcount,
+            "hint": _("Backfill positions"),
+        },
+        {
+            "label": _("Approved Headcount"),
+            "value": approved_headcount,
+            "hint": f"{approval_pct}% " + str(_("approval rate")),
+        },
+    ]
+
+    dept_breakdown = list(
+        qs.values("department_id__department")
+        .annotate(headcount_sum=Sum("headcount"), req_count=Count("id"))
+        .order_by("-headcount_sum")
+    )
+
+    charts = [
+        {
+            "id": "requisitions_by_department",
+            "type": "bar",
+            "title": _("Headcount Requested by Department"),
+            "categories": [
+                d["department_id__department"] or str(_("Unassigned"))
+                for d in dept_breakdown
+            ],
+            "series": [
+                {
+                    "name": str(_("Headcount")),
+                    "data": [d["headcount_sum"] for d in dept_breakdown],
+                }
+            ],
+        },
+        {
+            "id": "status_distribution",
+            "type": "donut",
+            "title": _("Requisition Status Mix"),
+            "categories": [
+                str(_("Pending")),
+                str(_("Reviewed by HR")),
+                str(_("Approved by CEO")),
+                str(_("Rejected")),
+            ],
+            "series": [
+                {
+                    "name": str(_("Requisitions")),
+                    "data": [
+                        pending_count,
+                        reviewed_count,
+                        approved_count,
+                        rejected_count,
+                    ],
+                }
+            ],
+        },
+    ]
+
+    columns = [
+        {"key": "code", "label": _("Requisition Code")},
+        {"key": "date", "label": _("Date Requested")},
+        {"key": "position", "label": _("Position Title")},
+        {"key": "department", "label": _("Department")},
+        {"key": "headcount", "label": _("Headcount")},
+        {"key": "type", "label": _("Employment Type")},
+        {"key": "category", "label": _("Category / Term")},
+        {"key": "manager", "label": _("Requesting Manager")},
+        {"key": "status", "label": _("Status")},
+    ]
+
+    rows = []
+    for r in qs.select_related("department_id", "requested_by").order_by(
+        "-requested_date", "-id"
+    ):
+        cat_str = ""
+        if r.employment_type == "permanent":
+            cat_str = r.get_permanent_category_display() or ""
+            if r.permanent_category == "replacement" and r.replacement_for:
+                cat_str += f" ({r.replacement_for})"
+        elif r.employment_type == "contract":
+            cat_str = r.get_contract_term_display() or "Contract"
+        else:
+            cat_str = "Intern"
+
+        rows.append(
+            {
+                "code": r.requisition_code or f"REQ-{r.id}",
+                "date": r.requested_date.strftime("%Y-%m-%d")
+                if r.requested_date
+                else "",
+                "position": r.position_title,
+                "department": str(r.department_id),
+                "headcount": r.headcount,
+                "type": r.get_employment_type_display(),
+                "category": cat_str,
+                "manager": str(r.requested_by),
+                "status": r.get_status_display(),
+            }
+        )
+
+    return {
+        "title": _("Staff Requisition Summary"),
+        "kpis": kpis,
+        "charts": charts,
+        "table": {
+            "columns": columns,
+            "rows": rows,
+        },
+        "explorer_url_name": "staff-requisition-view",
+    }
+

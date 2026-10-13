@@ -59,6 +59,7 @@ from recruitment.models import (
     Skill,
     SkillZone,
     SkillZoneCandidate,
+    StaffRequisition,
     Stage,
     StageFiles,
     StageNote,
@@ -1490,3 +1491,134 @@ class LinkedInAccountForm(BaseModelForm):
             "is_active",
             "company_id",
         ]
+
+
+class StaffRequisitionForm(BaseModelForm):
+    """
+    Form for Executive Leadership / Head of Department to submit Staff Requisitions.
+    Replicates all inputs from quality form RMO-HRA-QF-001.
+    """
+
+    class Meta:
+        model = StaffRequisition
+        fields = [
+            "position_title",
+            "job_position_id",
+            "department_id",
+            "location",
+            "function",
+            "headcount",
+            "employment_type",
+            "permanent_category",
+            "replacement_for",
+            "replacement_reason",
+            "target_onboarding_date",
+            "position_level",
+            "contract_term",
+            "period_from",
+            "period_to",
+            "working_days_hours",
+            "justification",
+            "position_requirements",
+            "job_description_file",
+        ]
+        widgets = {
+            "target_onboarding_date": forms.DateInput(
+                attrs={"type": "date", "class": "oh-input w-100"}
+            ),
+            "period_from": forms.DateInput(
+                attrs={"type": "date", "class": "oh-input w-100"}
+            ),
+            "period_to": forms.DateInput(
+                attrs={"type": "date", "class": "oh-input w-100"}
+            ),
+            "justification": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "class": "oh-input w-100",
+                    "placeholder": _(
+                        "Detailed business justification: why is this position needed? (e.g., increased volume, strategic project, restructuring)"
+                    ),
+                }
+            ),
+            "position_requirements": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "class": "oh-input w-100",
+                    "placeholder": _(
+                        "Core competencies, education, qualifications, and key responsibilities required for this role."
+                    ),
+                }
+            ),
+            "replacement_reason": forms.Textarea(
+                attrs={
+                    "rows": 2,
+                    "class": "oh-input w-100",
+                    "placeholder": _("Resignation, transfer, promotion, or termination reason..."),
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["headcount"].initial = 1
+        self.fields["position_title"].widget.attrs.update(
+            {"placeholder": _("e.g. Senior Brewing Specialist / Lead Software Architect")}
+        )
+        self.fields["location"].widget.attrs.update(
+            {"placeholder": _("e.g. Phnom Penh HQ / Brewery / Regional Depot")}
+        )
+        self.fields["function"].widget.attrs.update(
+            {"placeholder": _("e.g. Brewing & Quality / Technology / Commercial Operations")}
+        )
+        self.fields["position_level"].widget.attrs.update(
+            {"placeholder": _("e.g. Executive, Specialist, Manager, Senior Manager, Director")}
+        )
+        self.fields["working_days_hours"].widget.attrs.update(
+            {"placeholder": _("e.g. Mon - Fri, 8:00 AM - 5:00 PM (40 hrs/week)")}
+        )
+        self.fields["replacement_for"].widget.attrs.update(
+            {"placeholder": _("Name of departing / transferred employee")}
+        )
+        self.fields["department_id"].empty_label = _("--- Select Department ---")
+        if "job_position_id" in self.fields:
+            self.fields["job_position_id"].empty_label = _("--- Select Job Position (Optional) ---")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        emp_type = cleaned_data.get("employment_type")
+        perm_cat = cleaned_data.get("permanent_category")
+
+        if emp_type == "permanent":
+            if not perm_cat:
+                self.add_error(
+                    "permanent_category",
+                    _("Please select a permanent headcount category (Budgeted, Non-Budgeted, or Replacement)."),
+                )
+            elif perm_cat == "replacement":
+                if not cleaned_data.get("replacement_for"):
+                    self.add_error("replacement_for", _("Please specify who is being replaced."))
+                if not cleaned_data.get("replacement_reason"):
+                    self.add_error("replacement_reason", _("Please provide a reason for the replacement."))
+            if not cleaned_data.get("target_onboarding_date"):
+                self.add_error(
+                    "target_onboarding_date",
+                    _("Target onboarding date is required for permanent positions."),
+                )
+        elif emp_type in ("contract", "intern"):
+            p_from = cleaned_data.get("period_from")
+            p_to = cleaned_data.get("period_to")
+            if not p_from:
+                self.add_error("period_from", _("Start date is required for contract/intern positions."))
+            if not p_to:
+                self.add_error("period_to", _("End date is required for contract/intern positions."))
+            if p_from and p_to and p_to < p_from:
+                self.add_error("period_to", _("End date cannot be prior to start date."))
+            if not cleaned_data.get("working_days_hours"):
+                self.add_error(
+                    "working_days_hours",
+                    _("Working day and hours are required for contract/intern positions."),
+                )
+
+        return cleaned_data
+

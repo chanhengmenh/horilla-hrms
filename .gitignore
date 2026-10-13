@@ -164,3 +164,6 @@ CLAUDE.md
 .mcp.safe.json
 .claudeignore
 .specify/
+
+/prompts
+progress.md

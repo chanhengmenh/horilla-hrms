@@ -26,6 +26,11 @@ SUBMENUS = [
         "redirect": reverse("recruitment-dashboard"),
     },
     {
+        "menu": _("Staff Requisitions"),
+        "redirect": reverse_lazy("staff-requisition-view"),
+        "accessibility": "recruitment.sidebar.requisition_accessibility",
+    },
+    {
         "menu": _("Recruitment Pipeline"),
         "redirect": reverse("cbv-pipeline"),
         "accessibility": "recruitment.sidebar.pipeline_accessibility",
@@ -76,6 +81,16 @@ def menu_accessibilty(
     request, _menu: str = "", user_perms: PermWrapper = [], *args, **kwargs
 ) -> bool:
     return is_stagemanager(request.user) or "recruitment" in user_perms
+
+
+def requisition_accessibility(
+    request, _submenu: dict = {}, user_perms: PermWrapper = [], *args, **kwargs
+) -> bool:
+    from recruitment.accessibility import requisition_sidebar_accessibility
+
+    return requisition_sidebar_accessibility(
+        request, _submenu, user_perms, *args, **kwargs
+    )
 
 
 def pipeline_accessibility(

@@ -1,0 +1,198 @@
+{% extends 'index.html' %}
+{% load i18n static %}
+
+{% block content %}
+<div class="oh-wrapper">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-3 mt-2">
+        <div>
+            <h1 class="oh-title" style="font-size: 1.5rem; font-weight: 700; color: #1f2937;">
+                {% trans "Staff Requisitions" %}
+                <span class="badge" style="background-color: #f3f4f6; color: #4b5563; font-size: 0.75rem; border: 1px solid #d1d5db; padding: 4px 8px; border-radius: 4px; vertical-align: middle; margin-left: 8px;">
+                    RMO-HRA-QF-001
+                </span>
+            </h1>
+            <p class="text-muted" style="margin: 0; font-size: 0.875rem;">
+                {% trans "Executive headcount requests, approval workflow, and official ticket generation." %}
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'standard-report-detail' 'staff-requisition-summary' %}" class="oh-btn oh-btn--secondary" title="{% trans 'View Talent Summary Report' %}">
+                <ion-icon name="bar-chart-outline" class="me-1"></ion-icon>
+                {% trans "Requisition Audit Report" %}
+            </a>
+            {% if is_executive %}
+            <a href="{% url 'staff-requisition-create' %}" class="oh-btn oh-btn--primary">
+                <ion-icon name="add-circle-outline" class="me-1"></ion-icon>
+                {% trans "New Requisition (Executive)" %}
+            </a>
+            {% else %}
+            <span class="badge bg-light text-muted border p-2" title="{% trans 'Only Executives / Department Heads can request headcount' %}">
+                <ion-icon name="lock-closed-outline" class="me-1"></ion-icon>
+                {% trans "Requesting Restricted to Executives" %}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Alert / Messages -->
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="oh-alert oh-alert--animated {% if message.tags == 'error' %}oh-alert--danger{% else %}oh-alert--{{ message.tags }}{% endif %} mb-2">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Filter Bar -->
+    <div class="oh-card p-3 mb-4" style="background: #fff; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <input type="text" name="search" value="{{ request.GET.search }}" class="oh-input w-100" placeholder="{% trans 'Search position title...' %}" />
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="oh-input w-100">
+                    <option value="">{% trans "All Statuses" %}</option>
+                    <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>{% trans "Submitted (Pending)" %}</option>
+                    <option value="reviewed_hr" {% if status_filter == 'reviewed_hr' %}selected{% endif %}>{% trans "Reviewed by HR" %}</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>{% trans "Approved by CEO" %}</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>{% trans "Rejected" %}</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="department_id" class="oh-input w-100">
+                    <option value="">{% trans "All Departments" %}</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if request.GET.department_id == dept.id|stringformat:"s" %}selected{% endif %}>
+                        {{ dept.department }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="oh-btn oh-btn--secondary w-100">
+                    <ion-icon name="filter-outline"></ion-icon> {% trans "Filter" %}
+                </button>
+                <a href="{% url 'staff-requisition-view' %}" class="oh-btn oh-btn--light" title="{% trans 'Reset' %}">
+                    <ion-icon name="refresh-outline"></ion-icon>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Section -->
+    <div class="oh-card" style="background: #fff; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden;">
+        {% if requisitions %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" style="vertical-align: middle;">
+                <thead style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                    <tr>
+                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Requisition Code" %}</th>
+                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Date" %}</th>
+                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Position to be Requested" %}</th>
+                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Department" %}</th>
+                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Headcount" %}</th>
+                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Type & Category" %}</th>
+                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Requested By" %}</th>
+                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Status" %}</th>
+                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563; text-align: right;">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requisitions %}
+                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                        <td style="padding: 14px 16px;">
+                            <a href="{% url 'staff-requisition-detail' req.id %}" style="font-weight: 600; color: #e54f38; text-decoration: none;">
+                                {{ req.requisition_code }}
+                            </a>
+                        </td>
+                        <td style="padding: 14px 16px; font-size: 0.875rem; color: #6b7280;">
+                            {{ req.requested_date|date:"M d, Y" }}
+                        </td>
+                        <td style="padding: 14px 16px;">
+                            <div style="font-weight: 600; color: #111827;">{{ req.position_title }}</div>
+                            <div style="font-size: 0.75rem; color: #9ca3af;">{{ req.location }} • {{ req.function }}</div>
+                        </td>
+                        <td style="padding: 14px 16px; font-size: 0.875rem;">
+                            {{ req.department_id.department }}
+                        </td>
+                        <td style="padding: 14px 16px; font-size: 0.875rem; font-weight: 600;">
+                            {{ req.headcount }}
+                        </td>
+                        <td style="padding: 14px 16px; font-size: 0.875rem;">
+                            {% if req.employment_type == 'permanent' %}
+                                <span class="badge" style="background-color: #dbeafe; color: #1e40af;">{% trans "Permanent" %}</span>
+                                <div style="font-size: 0.75rem; color: #6b7280; margin-top: 2px;">
+                                    {{ req.get_permanent_category_display|default:"" }}
+                                </div>
+                            {% elif req.employment_type == 'contract' %}
+                                <span class="badge" style="background-color: #fef3c7; color: #92400e;">{% trans "Contract" %}</span>
+                                <div style="font-size: 0.75rem; color: #6b7280; margin-top: 2px;">
+                                    {{ req.get_contract_term_display|default:"" }}
+                                </div>
+                            {% else %}
+                                <span class="badge" style="background-color: #f3e8ff; color: #6b21a8;">{% trans "Intern" %}</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 16px; font-size: 0.875rem;">
+                            <div style="font-weight: 500;">{{ req.requested_by }}</div>
+                            <div style="font-size: 0.75rem; color: #9ca3af;">{{ req.manager_position }}</div>
+                        </td>
+                        <td style="padding: 14px 16px;">
+                            {% if req.status == 'approved' %}
+                                <span class="badge" style="background-color: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px;">
+                                    <ion-icon name="checkmark-done-circle-outline" style="vertical-align: -1px;"></ion-icon> {% trans "Approved (CEO)" %}
+                                </span>
+                            {% elif req.status == 'reviewed_hr' %}
+                                <span class="badge" style="background-color: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px;">
+                                    <ion-icon name="eye-outline" style="vertical-align: -1px;"></ion-icon> {% trans "Reviewed by HR" %}
+                                </span>
+                            {% elif req.status == 'rejected' %}
+                                <span class="badge" style="background-color: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px;">
+                                    <ion-icon name="close-circle-outline" style="vertical-align: -1px;"></ion-icon> {% trans "Rejected" %}
+                                </span>
+                            {% else %}
+                                <span class="badge" style="background-color: #fef9c3; color: #854d0e; padding: 4px 8px; border-radius: 4px;">
+                                    <ion-icon name="time-outline" style="vertical-align: -1px;"></ion-icon> {% trans "Submitted (Pending)" %}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 16px; text-align: right;">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'staff-requisition-pdf' req.id %}" class="oh-btn oh-btn--small oh-btn--secondary" title="{% trans 'Download PDF Ticket' %}">
+                                    <ion-icon name="document-text-outline" class="me-1"></ion-icon> {% trans "PDF Ticket" %}
+                                </a>
+                                <a href="{% url 'staff-requisition-detail' req.id %}" class="oh-btn oh-btn--small oh-btn--light ms-1" title="{% trans 'View details' %}">
+                                    <ion-icon name="eye-outline"></ion-icon>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center p-5">
+            <ion-icon name="document-text-outline" style="font-size: 3rem; color: #9ca3af; margin-bottom: 12px;"></ion-icon>
+            <h4 style="color: #4b5563; font-weight: 600;">{% trans "No Staff Requisitions Found" %}</h4>
+            <p class="text-muted" style="max-width: 500px; margin: 0 auto 20px;">
+                {% if is_executive %}
+                    {% trans "No headcount requests have been submitted yet. Click 'New Requisition' to fill out the RMO-HRA-QF-001 form." %}
+                {% else %}
+                    {% trans "No staff requisitions are currently pending review or audit." %}
+                {% endif %}
+            </p>
+            {% if is_executive %}
+            <a href="{% url 'staff-requisition-create' %}" class="oh-btn oh-btn--primary">
+                <ion-icon name="add-circle-outline" class="me-1"></ion-icon>
+                {% trans "Submit First Requisition" %}
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

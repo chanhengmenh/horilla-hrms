@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Staff Requisition Form - {{ req.requisition_code }}</title>
+    <style>
+        @page {
+            size: a4 portrait;
+            margin: 1.2cm 1.2cm 1.2cm 1.2cm;
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 8pt;
+                color: #666;
+            }
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 9pt;
+            color: #222;
+            line-height: 1.35;
+        }
+        .header-table {
+            width: 100%;
+            border-bottom: 2px solid #1f2937;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+        }
+        .header-title {
+            font-size: 15pt;
+            font-weight: bold;
+            color: #111;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-code {
+            font-size: 8.5pt;
+            font-weight: bold;
+            color: #e54f38;
+            text-align: right;
+        }
+        .note-box {
+            background-color: #fef2f2;
+            border-left: 3px solid #dc2626;
+            padding: 4px 8px;
+            font-size: 8pt;
+            color: #991b1b;
+            margin-bottom: 10px;
+        }
+        .section-header {
+            background-color: #f3f4f6;
+            border: 1px solid #d1d5db;
+            font-weight: bold;
+            font-size: 9pt;
+            color: #1f2937;
+            padding: 4px 6px;
+            margin-top: 8px;
+            margin-bottom: 0px;
+            text-transform: uppercase;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 6px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #d1d5db;
+            padding: 5px 6px;
+            font-size: 8.5pt;
+            vertical-align: top;
+        }
+        .data-table th {
+            background-color: #f9fafb;
+            font-weight: bold;
+            color: #374151;
+        }
+        .label {
+            font-weight: bold;
+            color: #4b5563;
+        }
+        .checkbox {
+            font-family: Helvetica, Arial, sans-serif;
+            font-weight: bold;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        .text-box {
+            border: 1px solid #d1d5db;
+            padding: 6px;
+            min-height: 45px;
+            font-size: 8.5pt;
+            background-color: #fafafa;
+            margin-bottom: 6px;
+        }
+        .approval-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+        }
+        .approval-table th, .approval-table td {
+            border: 1px solid #9ca3af;
+            padding: 6px;
+            font-size: 8pt;
+            text-align: center;
+        }
+        .approval-table th {
+            background-color: #f3f4f6;
+            font-weight: bold;
+        }
+        .sig-space {
+            height: 38px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Table with Quality Code and Title -->
+    <table class="header-table">
+        <tr>
+            <td style="width: 25%; vertical-align: middle;">
+                <strong style="font-size: 11pt; color: #111;">{{ company.company|default:"HANUMAN BEVERAGES" }}</strong>
+            </td>
+            <td style="width: 50%; vertical-align: middle;" class="header-title">
+                Staff Requisition Form
+            </td>
+            <td style="width: 25%; vertical-align: middle;" class="form-code">
+                <strong>FORM: RMO-HRA-QF-001</strong><br>
+                <span style="font-size: 7.5pt; color: #555;">Ticket: {{ req.requisition_code }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Mandatory Policy Notice -->
+    <div class="note-box">
+        <strong>Note:</strong> All fields are mandatory; requisition will be considered only if this form is fully completed.
+    </div>
+
+    <!-- Section 1: Position Details -->
+    <div class="section-header">1. Position Details</div>
+    <table class="data-table">
+        <tr>
+            <th style="width: 35%;">* Position to be requested</th>
+            <th style="width: 20%;">* Based Location</th>
+            <th style="width: 20%;">* Function</th>
+            <th style="width: 25%;">* Department</th>
+        </tr>
+        <tr>
+            <td><strong>{{ req.position_title }}</strong></td>
+            <td>{{ req.location }}</td>
+            <td>{{ req.function }}</td>
+            <td><strong>{{ req.department_id.department }}</strong></td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <span class="label">Headcount Requested:</span> <strong>{{ req.headcount }}</strong>
+            </td>
+            <td colspan="2">
+                <span class="label">Job Position Linkage:</span> {{ req.job_position_id.job_position|default:"New Position Title" }}
+            </td>
+        </tr>
+    </table>
+
+    <!-- Section 2: Line Manager's Details -->
+    <div class="section-header">2. Line Manager's Details (Hiring Manager)</div>
+    <table class="data-table">
+        <tr>
+            <th style="width: 40%;">* Manager's Name</th>
+            <th style="width: 35%;">Position / Title</th>
+            <th style="width: 25%;">Date Requested</th>
+        </tr>
+        <tr>
+            <td><strong>{{ req.requested_by }}</strong></td>
+            <td>{{ req.manager_position }}</td>
+            <td>{{ req.requested_date|date:"d-M-Y" }}</td>
+        </tr>
+    </table>
+
+    <!-- Section 3: Employment Status -->
+    <div class="section-header">3. Employment Status</div>
+    <table class="data-table">
+        <tr>
+            <td style="width: 50%; vertical-align: top;">
+                <strong>PERMANENT:</strong><br><br>
+                {% if req.employment_type == 'permanent' and req.permanent_category == 'budgeted' %}
+                    [ X ] <strong>Additional Headcount Budgeted</strong>
+                {% else %}
+                    [ &nbsp; ] Additional Headcount Budgeted
+                {% endif %}<br><br>
+
+                {% if req.employment_type == 'permanent' and req.permanent_category == 'non_budgeted' %}
+                    [ X ] <strong>Additional Headcount - Non-Budgeted</strong>
+                {% else %}
+                    [ &nbsp; ] Additional Headcount - Non-Budgeted
+                {% endif %}<br><br>
+
+                {% if req.employment_type == 'permanent' and req.permanent_category == 'replacement' %}
+                    [ X ] <strong>Replacement for:</strong> <u>{{ req.replacement_for|default:"____________________" }}</u><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Reason(s): <i>{{ req.replacement_reason|default:"Resignation / Transfer" }}</i>
+                {% else %}
+                    [ &nbsp; ] Replacement for: ____________________________<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Reason(s): __________________________________
+                {% endif %}
+            </td>
+            <td style="width: 50%; vertical-align: top;">
+                <strong>CONTRACT / INTERN:</strong><br><br>
+                {% if req.employment_type == 'contract' %}
+                    [ X ] Contract &nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] Intern
+                {% elif req.employment_type == 'intern' %}
+                    [ &nbsp; ] Contract &nbsp;&nbsp;&nbsp;&nbsp; [ X ] Intern
+                {% else %}
+                    [ &nbsp; ] Contract &nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] Intern
+                {% endif %}<br><br>
+
+                {% if req.contract_term == 'full_time' %}
+                    [ X ] Full Time &nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] Part Time
+                {% elif req.contract_term == 'part_time' %}
+                    [ &nbsp; ] Full Time &nbsp;&nbsp;&nbsp;&nbsp; [ X ] Part Time
+                {% else %}
+                    [ &nbsp; ] Full Time &nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] Part Time
+                {% endif %}<br><br>
+
+                <span class="label">Period:</span> From <u>{{ req.period_from|date:"d-M-Y"|default:"___/___/______" }}</u> To <u>{{ req.period_to|date:"d-M-Y"|default:"___/___/______" }}</u><br>
+                <span class="label">Working Day & Hour:</span> <u>{{ req.working_days_hours|default:"____________________" }}</u>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <span class="label">Target Onboarding Date:</span> <strong>{{ req.target_onboarding_date|date:"d-M-Y"|default:"ASAP" }}</strong>
+                &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="label">Position Level:</span> <strong>{{ req.position_level|default:"Standard" }}</strong>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Section 4: Justification -->
+    <div class="section-header">4. Justification (Why is this position needed?)</div>
+    <div class="text-box">
+        {{ req.justification|linebreaksbr }}
+    </div>
+
+    <!-- Section 5: Position Requirements -->
+    <div class="section-header">5. Position Requirements (refer to JD attached)</div>
+    <div class="text-box">
+        {{ req.position_requirements|linebreaksbr }}
+        {% if req.job_description_file %}
+        <br><br><small style="color: #666;">(Detailed Job Description document is attached with this requisition)</small>
+        {% endif %}
+    </div>
+
+    <!-- Section 6: Approvals Matrix -->
+    <div class="section-header">6. Approvals (Official Sign-off Hierarchy)</div>
+    <table class="approval-table">
+        <tr>
+            <th style="width: 30%;">Requested by (Hiring Manager)</th>
+            <th style="width: 35%;">Checked HR Rep</th>
+            <th style="width: 35%;">HR Consultant</th>
+        </tr>
+        <tr>
+            <td class="sig-space">
+                <i>{{ req.requested_by }}</i>
+            </td>
+            <td class="sig-space">
+                {% if req.hr_reviewed_date %}
+                <i>{{ req.hr_reviewer|default:"Ms. Sin Thida" }}</i>
+                {% else %}
+                &nbsp;
+                {% endif %}
+            </td>
+            <td class="sig-space">
+                &nbsp;
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <strong>{{ req.requested_by }}</strong><br>
+                {{ req.manager_position|default:"Head of Department" }}<br>
+                Date: {{ req.requested_date|date:"d-M-Y" }}
+            </td>
+            <td>
+                <strong>Ms. Sin Thida</strong><br>
+                HR & Admin Manager<br>
+                Date: {{ req.hr_reviewed_date|date:"d-M-Y"|default:"____/____/________" }}
+            </td>
+            <td>
+                <strong>Mr. Ith Vithou</strong><br>
+                HR Consultant<br>
+                Date: ____/____/________
+            </td>
+        </tr>
+    </table>
+
+    <table class="approval-table" style="margin-top: 6px;">
+        <tr>
+            <th style="width: 50%;">Approved by CEO</th>
+            <th style="width: 50%;">Approved by Founder and Chairwoman</th>
+        </tr>
+        <tr>
+            <td class="sig-space">
+                {% if req.status == 'approved' %}
+                <i>{{ req.approved_by|default:"Mr. KHIEU Sarvorneat" }}</i>
+                {% else %}
+                &nbsp;
+                {% endif %}
+            </td>
+            <td class="sig-space">
+                &nbsp;
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <strong>Mr. KHIEU Sarvorneat</strong><br>
+                Chief Executive Officer<br>
+                Date: {{ req.approved_date|date:"d-M-Y"|default:"____/____/________" }}
+            </td>
+            <td>
+                <strong>Madam. KHIEU Sarsileap</strong><br>
+                Founder and Chairwoman<br>
+                Date: ____/____/________
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

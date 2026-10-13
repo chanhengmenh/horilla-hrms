@@ -409,6 +409,25 @@ def _load():
             filter_fields=_PMS,
         )
     )
+    register(
+        ReportDefinition(
+            slug="staff-requisition-summary",
+            name=_("Staff Requisition Summary"),
+            domain="talent",
+            description=_(
+                "Headcount requests, manpower budget breakdown, and approval status across the organization."
+            ),
+            permission="recruitment.view_recruitment",
+            query_fn=talent.staff_requisition_summary,
+            explorer_url_name="staff-requisition-view",
+            export_model="recruitment.StaffRequisition",
+            required_apps=("recruitment",),
+            filter_fields=(
+                "department_id",
+                "company_id",
+            ),
+        )
+    )
 
     # --- Compliance (Phase 2) ---
     register(
