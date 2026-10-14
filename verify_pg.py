@@ -25,6 +25,7 @@ queries = [
     ("Public Holidays", "SELECT count(*) FROM base_holidays"),
     ("Attendance Records", "SELECT count(*) FROM attendance_attendance"),
     ("Overtime Records (Monthly)", "SELECT count(*) FROM attendance_attendanceovertime"),
+    ("Staff Requisitions", "SELECT count(*) FROM recruitment_staffrequisition"),
 ]
 
 print("==================================================================")
