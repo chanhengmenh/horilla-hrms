@@ -212,6 +212,9 @@ def staff_requisition_pdf(request, pk):
     empty_b64 = _read_b64("recruitment/static/recruitment/images/chk_empty.png")
     checked_b64 = _read_b64("recruitment/static/recruitment/images/chk_checked.png")
 
+    chk_empty_html = f'<img src="data:image/png;base64,{empty_b64}" width="10" height="7" />' if empty_b64 else '[&nbsp;]'
+    chk_checked_html = f'<img src="data:image/png;base64,{checked_b64}" width="10" height="7" />' if checked_b64 else '[X]'
+
     context = {
         "req": requisition,
         "company": company,
@@ -219,6 +222,8 @@ def staff_requisition_pdf(request, pk):
         "logo_b64": logo_b64,
         "empty_b64": empty_b64,
         "checked_b64": checked_b64,
+        "chk_empty_html": chk_empty_html,
+        "chk_checked_html": chk_checked_html,
     }
 
     html = render_to_string("recruitment/requisition/requisition_pdf_ticket.html", context)
