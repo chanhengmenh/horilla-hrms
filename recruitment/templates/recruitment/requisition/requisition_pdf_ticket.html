@@ -376,7 +376,7 @@
                     {{ req.position_requirements|linebreaksbr|default:"&nbsp;"|safe }}
                     {% if req.job_description_file %}
                     <p style="margin: 4pt 0 0 0; color: #555555; font-size: 7pt;">
-                        (Job Description attached: {{ req.job_description_file.name }})
+                        (Job Description attached: {{ req.job_description_file.name|default:req.job_description_file }})
                     </p>
                     {% endif %}
                 </div>
