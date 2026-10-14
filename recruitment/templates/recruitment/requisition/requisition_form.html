@@ -2,6 +2,117 @@
 {% load i18n static %}
 
 {% block content %}
+<style>
+    /* Staff Requisition Form Night & Light Mode */
+    .req-form-card {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+    body.dark .req-form-card,
+    html.dark .req-form-card {
+        background-color: #1e1e1e !important;
+        border-color: #374151 !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .req-panel {
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        color: #1f2937;
+    }
+    body.dark .req-panel,
+    html.dark .req-panel {
+        background-color: #242424 !important;
+        border-color: #374151 !important;
+        color: #e5e7eb !important;
+    }
+
+    .req-sec-header {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+    body.dark .req-sec-header,
+    html.dark .req-sec-header {
+        color: #f3f4f6 !important;
+    }
+
+    .req-sec-divider {
+        border-bottom: 2px solid #f3f4f6;
+        padding-bottom: 8px;
+        margin-bottom: 20px;
+    }
+    body.dark .req-sec-divider,
+    html.dark .req-sec-divider {
+        border-bottom-color: #374151 !important;
+    }
+
+    .req-num {
+        color: var(--primary-600, #e54f38);
+        font-weight: 700;
+    }
+    body.dark .req-num {
+        color: var(--primary-400, #f87171) !important;
+    }
+
+    .req-field-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+    }
+    body.dark .req-field-label,
+    html.dark .req-field-label {
+        color: #d1d5db !important;
+    }
+
+    /* Subfield panels */
+    .req-subfield-permanent {
+        background-color: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+    }
+    body.dark .req-subfield-permanent,
+    html.dark .req-subfield-permanent {
+        background-color: #172554 !important;
+        border-color: #1e40af !important;
+    }
+
+    .req-subfield-contract {
+        background-color: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+    }
+    body.dark .req-subfield-contract,
+    html.dark .req-subfield-contract {
+        background-color: #451a03 !important;
+        border-color: #92400e !important;
+    }
+
+    .req-subfield-title {
+        font-weight: 700;
+        color: #1e40af;
+        margin-bottom: 12px;
+    }
+    body.dark .req-subfield-title {
+        color: #93c5fd !important;
+    }
+
+    .req-contract-title {
+        font-weight: 700;
+        color: #92400e;
+        margin-bottom: 12px;
+    }
+    body.dark .req-contract-title {
+        color: #fcd34d !important;
+    }
+</style>
+
 <div class="oh-wrapper" style="max-width: 1100px; margin: 0 auto; padding-bottom: 50px;">
     <!-- Breadcrumb & Back -->
     <div class="mb-3 mt-2">
@@ -22,12 +133,12 @@
     {% endif %}
 
     <!-- Card Container -->
-    <div class="oh-card" style="background: #ffffff; border-radius: 10px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden;">
+    <div class="oh-card req-form-card">
         <!-- Header Banner with Form Code -->
-        <div style="background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: #ffffff; padding: 24px 32px; border-bottom: 3px solid #e54f38;">
+        <div style="background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: #ffffff; padding: 24px 32px; border-bottom: 3px solid var(--primary-600, #e54f38);">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                    <span style="display: inline-block; background: #e54f38; color: #fff; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; margin-bottom: 6px;">
+                    <span style="display: inline-block; background: var(--primary-600, #e54f38); color: #fff; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; margin-bottom: 6px;">
                         FORM RMO-HRA-QF-001
                     </span>
                     <h2 style="font-size: 1.6rem; font-weight: 700; margin: 0; color: #ffffff;">
@@ -59,15 +170,15 @@
 
             <!-- SECTION 1: POSITION DETAILS -->
             <div class="mb-4">
-                <div style="border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; margin-bottom: 20px;">
-                    <h4 style="font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0;">
-                        <span style="color: #e54f38;">1.</span> {% trans "Position Details" %}
+                <div class="req-sec-divider">
+                    <h4 class="req-sec-header">
+                        <span class="req-num">1.</span> {% trans "Position Details" %}
                     </h4>
                 </div>
 
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                        <label class="form-label req-field-label">
                             {% trans "* Position to be requested" %}
                         </label>
                         {{ form.position_title }}
@@ -77,7 +188,7 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                        <label class="form-label req-field-label">
                             {% trans "* Based Location" %}
                         </label>
                         {{ form.location }}
@@ -87,7 +198,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                        <label class="form-label req-field-label">
                             {% trans "* Function / Division" %}
                         </label>
                         {{ form.function }}
@@ -97,7 +208,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                        <label class="form-label req-field-label">
                             {% trans "* Department" %}
                         </label>
                         {{ form.department_id }}
@@ -107,7 +218,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                        <label class="form-label req-field-label">
                             {% trans "* Headcount Requested" %}
                         </label>
                         {{ form.headcount }}
@@ -117,7 +228,7 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label" style="font-size: 0.875rem; color: #4b5563;">
+                        <label class="form-label req-field-label">
                             {% trans "Existing Job Position (Optional linkage)" %}
                         </label>
                         {{ form.job_position_id }}
@@ -127,41 +238,41 @@
 
             <!-- SECTION 2: LINE MANAGER'S DETAILS (PRE-FILLED) -->
             <div class="mb-4">
-                <div style="border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; margin-bottom: 20px;">
-                    <h4 style="font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0;">
-                        <span style="color: #e54f38;">2.</span> {% trans "Line Manager's Details (Hiring Manager / Executive)" %}
+                <div class="req-sec-divider">
+                    <h4 class="req-sec-header">
+                        <span class="req-num">2.</span> {% trans "Line Manager's Details (Hiring Manager / Executive)" %}
                     </h4>
                 </div>
 
-                <div class="row g-3 p-3" style="background: #f9fafb; border-radius: 8px; border: 1px dashed #d1d5db;">
+                <div class="row g-3 p-3 req-panel" style="border: 1px dashed #d1d5db;">
                     <div class="col-md-4">
                         <label class="form-label text-muted small" style="margin-bottom: 2px;">{% trans "* Manager's Name" %}</label>
-                        <div style="font-weight: 600; font-size: 1rem; color: #111827;">{{ manager_name }}</div>
+                        <div class="fw-bold" style="font-size: 1rem;">{{ manager_name }}</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label text-muted small" style="margin-bottom: 2px;">{% trans "Position / Title" %}</label>
-                        <div style="font-weight: 600; font-size: 1rem; color: #111827;">{{ manager_position|default:"Head of Department" }}</div>
+                        <div class="fw-bold" style="font-size: 1rem;">{{ manager_position|default:"Head of Department" }}</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label text-muted small" style="margin-bottom: 2px;">{% trans "Manager's Email" %}</label>
-                        <div style="font-weight: 600; font-size: 1rem; color: #111827;">{{ manager_email }}</div>
+                        <div class="fw-bold" style="font-size: 1rem;">{{ manager_email }}</div>
                     </div>
                 </div>
             </div>
 
             <!-- SECTION 3: EMPLOYMENT STATUS -->
             <div class="mb-4">
-                <div style="border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; margin-bottom: 20px;">
-                    <h4 style="font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0;">
-                        <span style="color: #e54f38;">3.</span> {% trans "Employment Status" %}
+                <div class="req-sec-divider">
+                    <h4 class="req-sec-header">
+                        <span class="req-num">3.</span> {% trans "Employment Status" %}
                     </h4>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                    <label class="form-label req-field-label">
                         {% trans "* Type of Employment" %}
                     </label>
-                    <div class="d-flex gap-4 p-2" style="background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+                    <div class="d-flex gap-4 p-2 req-panel">
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="employment_type" id="type_permanent" value="permanent" {% if form.employment_type.value == 'permanent' or not form.employment_type.value %}checked{% endif %} onchange="toggleEmploymentFields()">
                             <label class="form-check-label fw-semibold" for="type_permanent">{% trans "PERMANENT" %}</label>
@@ -178,11 +289,11 @@
                 </div>
 
                 <!-- PERMANENT SUBFIELDS -->
-                <div id="permanent_fields_panel" class="p-3 mb-3" style="background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe;">
-                    <h6 style="font-weight: 700; color: #1e40af; margin-bottom: 12px;">{% trans "Permanent Headcount Category & Terms" %}</h6>
+                <div id="permanent_fields_panel" class="p-3 mb-3 req-subfield-permanent">
+                    <h6 class="req-subfield-title">{% trans "Permanent Headcount Category & Terms" %}</h6>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            <label class="form-label req-field-label">
                                 {% trans "* Permanent Category" %}
                             </label>
                             {{ form.permanent_category }}
@@ -192,7 +303,7 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            <label class="form-label req-field-label">
                                 {% trans "Target Onboarding Date" %}
                             </label>
                             {{ form.target_onboarding_date }}
@@ -202,7 +313,7 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label" style="font-size: 0.875rem;">
+                            <label class="form-label req-field-label">
                                 {% trans "Position Level / Grade" %}
                             </label>
                             {{ form.position_level }}
@@ -210,10 +321,10 @@
 
                         <!-- REPLACEMENT FIELDS -->
                         <div class="col-12" id="replacement_details_row" style="display: none;">
-                            <div class="p-3" style="background: #ffffff; border-radius: 6px; border: 1px solid #93c5fd;">
+                            <div class="p-3 req-panel" style="border: 1px solid var(--primary-600, #e54f38);">
                                 <div class="row g-2">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                                        <label class="form-label req-field-label">
                                             {% trans "* Replacement for (Employee Name)" %}
                                         </label>
                                         {{ form.replacement_for }}
@@ -222,7 +333,7 @@
                                         {% endif %}
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                                        <label class="form-label req-field-label">
                                             {% trans "* Reason(s) for Replacement" %}
                                         </label>
                                         {{ form.replacement_reason }}
@@ -237,29 +348,29 @@
                 </div>
 
                 <!-- CONTRACT / INTERN SUBFIELDS -->
-                <div id="contract_fields_panel" class="p-3 mb-3" style="background: #fffbeb; border-radius: 8px; border: 1px solid #fde68a; display: none;">
-                    <h6 style="font-weight: 700; color: #92400e; margin-bottom: 12px;">{% trans "Contract / Intern Details" %}</h6>
+                <div id="contract_fields_panel" class="p-3 mb-3 req-subfield-contract" style="display: none;">
+                    <h6 class="req-contract-title">{% trans "Contract / Intern Details" %}</h6>
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            <label class="form-label req-field-label">
                                 {% trans "Contract Term" %}
                             </label>
                             {{ form.contract_term }}
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            <label class="form-label req-field-label">
                                 {% trans "Employment Period From" %}
                             </label>
                             {{ form.period_from }}
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            <label class="form-label req-field-label">
                                 {% trans "To" %}
                             </label>
                             {{ form.period_to }}
                         </div>
                         <div class="col-md-12">
-                            <label class="form-label fw-bold" style="font-size: 0.875rem;">
+                            <label class="form-label req-field-label">
                                 {% trans "Working Day & Hour" %}
                             </label>
                             {{ form.working_days_hours }}
@@ -270,9 +381,9 @@
 
             <!-- SECTION 4: JUSTIFICATION -->
             <div class="mb-4">
-                <div style="border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; margin-bottom: 14px;">
-                    <h4 style="font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0;">
-                        <span style="color: #e54f38;">4.</span> {% trans "Justification (Why is this position needed?)" %}
+                <div class="req-sec-divider" style="margin-bottom: 14px;">
+                    <h4 class="req-sec-header">
+                        <span class="req-num">4.</span> {% trans "Justification (Why is this position needed?)" %}
                     </h4>
                 </div>
                 {{ form.justification }}
@@ -283,9 +394,9 @@
 
             <!-- SECTION 5: POSITION REQUIREMENTS & JD ATTACHMENT -->
             <div class="mb-4">
-                <div style="border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; margin-bottom: 14px;">
-                    <h4 style="font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0;">
-                        <span style="color: #e54f38;">5.</span> {% trans "Position Requirements (refer to JD attached)" %}
+                <div class="req-sec-divider" style="margin-bottom: 14px;">
+                    <h4 class="req-sec-header">
+                        <span class="req-num">5.</span> {% trans "Position Requirements (refer to JD attached)" %}
                     </h4>
                 </div>
                 {{ form.position_requirements }}
@@ -294,7 +405,7 @@
                 {% endif %}
 
                 <div class="mt-3">
-                    <label class="form-label" style="font-size: 0.875rem; color: #4b5563;">
+                    <label class="form-label req-field-label">
                         <ion-icon name="attach-outline" style="vertical-align: -2px;"></ion-icon>
                         {% trans "Attach Job Description (JD) Document" %}
                     </label>
@@ -303,7 +414,7 @@
             </div>
 
             <!-- SUBMIT BUTTONS -->
-            <div class="d-flex justify-content-end gap-3 mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
+            <div class="d-flex justify-content-end gap-3 mt-4 pt-3" style="border-top: 1px solid rgba(156, 163, 175, 0.25);">
                 <a href="{% url 'staff-requisition-view' %}" class="oh-btn oh-btn--light">
                     {% trans "Cancel" %}
                 </a>

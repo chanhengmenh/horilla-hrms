@@ -1,0 +1,505 @@
+import fitz
+import os, sys, django
+from xhtml2pdf import pisa
+from io import BytesIO
+import base64
+
+sys.path.insert(0, os.path.abspath('.'))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'horilla.settings')
+django.setup()
+
+from django.template import Template, Context
+from recruitment.models import StaffRequisition
+
+with open('recruitment/static/recruitment/images/rmo_logo.jpg', 'rb') as f:
+    logo_b64 = base64.b64encode(f.read()).decode('utf-8')
+with open('recruitment/static/recruitment/images/chk_empty.png', 'rb') as f:
+    empty_b64 = base64.b64encode(f.read()).decode('utf-8')
+with open('recruitment/static/recruitment/images/chk_checked.png', 'rb') as f:
+    checked_b64 = base64.b64encode(f.read()).decode('utf-8')
+
+chk_empty_html = f'<img src="data:image/png;base64,{empty_b64}" width="10" height="7" />'
+chk_checked_html = f'<img src="data:image/png;base64,{checked_b64}" width="10" height="7" />'
+
+# Let's write the complete template HTML
+template_str = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Staff Requisition Form - {{ req.requisition_code|default:"" }}</title>
+    <style>
+        @page {
+            size: letter portrait;
+            margin-top: 0.35in;
+            margin-bottom: 0.30in;
+            margin-left: 0.45in;
+            margin-right: 0.45in;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 7.80pt;
+            color: #000000;
+            line-height: 1.25;
+            margin: 0;
+            padding: 0;
+        }
+        table, tr, td, th {
+            border: 0px solid transparent;
+            padding: 0;
+            margin: 0;
+        }
+        /* Outer Form Container Border (1.25pt black) */
+        .doc-frame {
+            border: 1.25pt solid #000000;
+            width: 100%;
+        }
+        /* Gray Section Banners - Arial Bold 7.8pt, background #D0CECE */
+        .banner {
+            background-color: #D0CECE;
+            border-top: 0.75pt solid #000000;
+            border-bottom: 0.75pt solid #000000;
+            text-align: center;
+            font-weight: bold;
+            font-size: 7.80pt;
+            padding: 3pt 0;
+            color: #000000;
+        }
+        .title-banner {
+            background-color: #D0CECE;
+            border-top: 1.25pt solid #000000;
+            border-bottom: 1.25pt solid #000000;
+            text-align: center;
+            font-weight: bold;
+            font-size: 9.96pt;
+            padding: 4pt 0;
+            color: #000000;
+        }
+        /* Column Tables with exact vertical dividers */
+        .col-table th {
+            border-bottom: 0.75pt solid #000000;
+            border-right: 0.75pt solid #000000;
+            padding: 3.5pt 5pt;
+            font-size: 7.80pt;
+            font-weight: bold;
+            text-align: left;
+            height: 15.6pt;
+            background-color: #ffffff;
+            color: #000000;
+        }
+        .col-table td {
+            border-bottom: 0.75pt solid #000000;
+            border-right: 0.75pt solid #000000;
+            padding: 3.5pt 5pt;
+            font-size: 7.80pt;
+            font-weight: normal;
+            height: 18.0pt;
+            vertical-align: middle;
+            color: #000000;
+        }
+        /* Employment Status section uses Calibri */
+        .emp-status-container {
+            font-family: Calibri, Arial, sans-serif;
+            font-size: 7.85pt;
+            padding: 6pt 10pt 8pt 10pt;
+            border-bottom: 0.75pt solid #000000;
+            color: #000000;
+        }
+        /* Boxed input fields inside Employment Status */
+        .box-field {
+            border: 0.75pt solid #000000;
+            height: 13.5pt;
+            line-height: 13.5pt;
+            padding: 0 4pt;
+            font-size: 7.85pt;
+            font-weight: bold;
+            background-color: #ffffff;
+        }
+        /* Full Time / Part Time Framed Box */
+        .blue-subbox {
+            border: 0.75pt solid #41719c;
+            width: 98%;
+            margin-top: 4pt;
+            margin-bottom: 4pt;
+        }
+        /* Scalable Content Areas for Justification & Position Requirements */
+        .scalable-section {
+            padding: 5pt 8pt;
+            font-size: 7.80pt;
+            line-height: 1.35;
+            color: #000000;
+        }
+        /* Approvals Box (Unified Table with 1.25pt border) */
+        .approvals-table {
+            border: 1.25pt solid #000000;
+            width: 100%;
+            margin-top: 8pt;
+            font-family: Calibri, Arial, sans-serif;
+        }
+        .approvals-banner {
+            background-color: #D0CECE;
+            border-bottom: 0.75pt solid #000000;
+            text-align: center;
+            font-weight: bold;
+            font-size: 8.52pt;
+            padding: 3.5pt 0;
+            color: #000000;
+        }
+        .req-asterisk {
+            color: #ff0000;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Outer Form Frame (Table-based container to prevent ReportLab block splitting bugs) -->
+    <table class="doc-frame" cellspacing="0" cellpadding="0">
+        <tr>
+            <td style="padding: 0;">
+                
+                <!-- Header: Logo on left, Ticket Code on right -->
+                <table style="width: 100%;" cellspacing="0" cellpadding="0">
+                    <tr>
+                        <td style="padding: 6pt 10pt; width: 65%; vertical-align: middle;">
+                            {% if logo_b64 %}
+                            <img src="data:image/jpeg;base64,{{ logo_b64 }}" width="125" />
+                            {% else %}
+                            <strong style="font-size: 14pt; color: #008751;">RMO</strong><br>
+                            <small style="font-size: 6.5pt; color: #555555;">- RMO TECHNOLOGY CO., LTD -</small>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 6pt 10pt; width: 35%; text-align: right; vertical-align: top;">
+                            {% if req.requisition_code %}
+                            <div style="font-size: 7pt; color: #555555;">Requisition Code:</div>
+                            <div style="font-size: 9pt; font-weight: bold; color: #111111;">{{ req.requisition_code }}</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Title Banner -->
+                <div class="title-banner">
+                    Staff Requisition Form
+                </div>
+
+                <!-- Note Section -->
+                <div style="padding: 3pt 8pt; font-size: 7.80pt; background-color: #ffffff;">
+                    <strong>Note:</strong>
+                </div>
+                <div style="padding: 3pt 8pt; font-size: 7.80pt; background-color: #D0CECE; border-top: 0.75pt solid #000000; border-bottom: 0.75pt solid #000000;">
+                    All fields are mandatory; requisition will be considered only if this form is fully completed.
+                </div>
+
+                <!-- Position Details Banner -->
+                <div class="banner" style="border-top: none;">
+                    Position Details
+                </div>
+
+                <!-- Position Details Table (Exact 4 Column Bars) -->
+                <table class="col-table" style="width: 100%;" cellspacing="0" cellpadding="0">
+                    <tr>
+                        <th style="width: 38.2%;"><span class="req-asterisk">*</span> Position to be requested</th>
+                        <th style="width: 18.0%;"><span class="req-asterisk">*</span> Based Location</th>
+                        <th style="width: 17.2%;"><span class="req-asterisk">*</span> Function</th>
+                        <th style="width: 26.6%; border-right: none;"><span class="req-asterisk">*</span> Department</th>
+                    </tr>
+                    <tr>
+                        <td><strong>{{ req.position_title|default:"&nbsp;"|safe }}</strong></td>
+                        <td>{{ req.location|default:"&nbsp;"|safe }}</td>
+                        <td>{{ req.function|default:"&nbsp;"|safe }}</td>
+                        <td style="border-right: none;"><strong>{{ req.department_id.department|default:"" }}</strong></td>
+                    </tr>
+                </table>
+
+                <!-- Line Manager's Details Banner -->
+                <div class="banner" style="border-top: none;">
+                    Line Manager's Details
+                </div>
+
+                <!-- Line Manager's Details Table (Exact 2 Column Bars) -->
+                <table class="col-table" style="width: 100%;" cellspacing="0" cellpadding="0">
+                    <tr>
+                        <th style="width: 56.2%;"><span class="req-asterisk">*</span> Manager's Name</th>
+                        <th style="width: 43.8%; border-right: none;">Position</th>
+                    </tr>
+                    <tr>
+                        <td>{{ req.requested_by.get_full_name|default:req.requested_by|default:"" }}</td>
+                        <td style="border-right: none;">{{ req.manager_position|default:"" }}</td>
+                    </tr>
+                </table>
+
+                <!-- Employment Status Banner -->
+                <div class="banner" style="border-top: none;">
+                    Employment Status
+                </div>
+
+                <!-- Employment Status Details (Uses Calibri) -->
+                <div class="emp-status-container">
+                    
+                    <table style="width: 100%;" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <!-- Left Column: Permanent Checkbox and Options -->
+                            <td style="width: 56%; vertical-align: top;">
+                                <table cellspacing="0" cellpadding="0" style="margin-bottom: 4pt;">
+                                    <tr>
+                                        <td style="width: 14pt; vertical-align: middle;">
+                                            {% if req.employment_type == 'permanent' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
+                                        </td>
+                                        <td style="vertical-align: middle;"><strong style="font-size: 7.82pt;">PERMANENT</strong></td>
+                                    </tr>
+                                </table>
+
+                                <table cellspacing="0" cellpadding="0" style="margin-left: 14pt; margin-bottom: 4pt;">
+                                    <tr>
+                                        <td style="width: 14pt; vertical-align: middle;">
+                                            {% if req.employment_type == 'permanent' and req.permanent_category == 'budgeted' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
+                                        </td>
+                                        <td style="vertical-align: middle; font-size: 7.85pt;">Additional Headcount Budgetted</td>
+                                    </tr>
+                                </table>
+
+                                <table cellspacing="0" cellpadding="0" style="margin-left: 14pt; margin-bottom: 4pt;">
+                                    <tr>
+                                        <td style="width: 14pt; vertical-align: middle;">
+                                            {% if req.employment_type == 'permanent' and req.permanent_category == 'non_budgeted' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
+                                        </td>
+                                        <td style="vertical-align: middle; font-size: 7.85pt;">Additional Headcount - Non-Budgetted</td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Right Column: Target onboarding date & Position Level -->
+                            <td style="width: 44%; vertical-align: top; padding-left: 10pt;">
+                                <table style="width: 100%;" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td style="width: 55%; vertical-align: middle; font-size: 8.52pt;">Target onboarding date:</td>
+                                        <td style="width: 45%;"><div class="box-field" style="text-align: center;">{{ req.target_onboarding_date|date:"d.m.y"|default:"&nbsp;"|safe }}</div></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="vertical-align: middle; padding-top: 4pt; font-size: 7.85pt;">Position Level:</td>
+                                        <td style="padding-top: 4pt;"><div class="box-field" style="text-align: center;">{{ req.position_level|default:"&nbsp;"|safe }}</div></td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Replacement for & Reason(s) -->
+                    <table style="width: 100%; margin-top: 2pt;" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="width: 14pt; vertical-align: middle; padding-left: 14pt;">
+                                {% if req.employment_type == 'permanent' and req.permanent_category == 'replacement' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
+                            </td>
+                            <td style="width: 90pt; vertical-align: middle; font-size: 7.82pt;">
+                                Replacement for
+                            </td>
+                            <td style="padding-right: 5pt;">
+                                <div class="box-field">{{ req.replacement_for|default:"&nbsp;"|safe }}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td style="vertical-align: middle; padding-top: 3pt; padding-left: 14pt; font-size: 7.85pt;">
+                                Reason(s):
+                            </td>
+                            <td style="padding-right: 5pt; padding-top: 3pt;">
+                                <div class="box-field">{{ req.replacement_reason|default:"&nbsp;"|safe }}</div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Contract & INTERN Row -->
+                    <table style="width: 100%; margin-top: 6pt;" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="width: 25%; vertical-align: middle;">
+                                <table cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td style="width: 14pt; vertical-align: middle;">
+                                            {% if req.employment_type == 'contract' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
+                                        </td>
+                                        <td style="vertical-align: middle;"><strong style="font-size: 7.85pt;">Contract</strong></td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td style="width: 75%; vertical-align: middle;">
+                                <table cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td style="width: 14pt; vertical-align: middle;">
+                                            {% if req.employment_type == 'intern' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
+                                        </td>
+                                        <td style="vertical-align: middle;"><strong style="font-size: 7.85pt;">INTERN</strong></td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Full Time / Part Time Blue Box -->
+                    <table class="blue-subbox" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="padding: 2.5pt 10pt; width: 45%; vertical-align: middle;">
+                                <table cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td style="width: 14pt; vertical-align: middle;">
+                                            {% if req.contract_term == 'full_time' or not req.contract_term %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
+                                        </td>
+                                        <td style="vertical-align: middle; font-size: 7.85pt;">Full Time</td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td style="padding: 2.5pt 10pt; width: 55%; vertical-align: middle;">
+                                <table cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td style="width: 14pt; vertical-align: middle;">
+                                            {% if req.contract_term == 'part_time' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
+                                        </td>
+                                        <td style="vertical-align: middle; font-size: 7.85pt;">Part Time</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Employment Period -->
+                    <table style="width: 100%; margin-top: 3pt;" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="width: 110pt; vertical-align: middle; font-size: 7.82pt;">Employment Period from:</td>
+                            <td style="width: 135pt;"><div class="box-field" style="text-align: center;">{{ req.period_from|date:"d.m.y"|default:"&nbsp;"|safe }}</div></td>
+                            <td style="width: 25pt; text-align: center; vertical-align: middle; font-size: 7.85pt;">To:</td>
+                            <td style="width: 135pt;"><div class="box-field" style="text-align: center;">{{ req.period_to|date:"d.m.y"|default:"&nbsp;"|safe }}</div></td>
+                            <td></td>
+                        </tr>
+                    </table>
+
+                    {% if req.working_days_hours %}
+                    <!-- Working Day & Hour (Optional) -->
+                    <table style="width: 100%; margin-top: 4pt;" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="width: 110pt; vertical-align: middle; font-size: 7.85pt;">Working Day & Hour:</td>
+                            <td style="width: 300pt;"><div class="box-field">{{ req.working_days_hours }}</div></td>
+                            <td></td>
+                        </tr>
+                    </table>
+                    {% endif %}
+
+                </div>
+
+                <!-- Section 4: Justification (SCALES VERTICALLY / CAN MOVE DOWN) -->
+                <div class="banner" style="border-top: none;">
+                    Justification (Why is this position needed?)
+                </div>
+                <div class="scalable-section" style="border-bottom: 0.75pt solid #000000; min-height: 38pt;">
+                    {{ req.justification|linebreaksbr|default:"&nbsp;"|safe }}
+                </div>
+
+                <!-- Section 5: Position Requirements (SCALES VERTICALLY / CAN MOVE DOWN) -->
+                <div class="banner" style="border-top: none;">
+                    Position Requirements (refer to JD attached)
+                </div>
+                <div class="scalable-section" style="min-height: 40pt;">
+                    {{ req.position_requirements|linebreaksbr|default:"&nbsp;"|safe }}
+                    {% if req.job_description_file %}
+                    <p style="margin: 4pt 0 0 0; color: #555555; font-size: 7pt;">
+                        (Job Description attached: {{ req.job_description_file.name }})
+                    </p>
+                    {% endif %}
+                </div>
+
+            </td>
+        </tr>
+    </table>
+
+    <!-- Section 6: Approvals & Quality Footer (Unified atomic unit: moves together if space is tight) -->
+    <table style="width: 100%; margin-top: 6pt;" cellspacing="0" cellpadding="0">
+        <tr>
+            <td style="padding: 0;">
+                <table class="approvals-table" cellspacing="0" cellpadding="0" style="margin-top: 0;">
+                    <tr>
+                        <td style="padding: 0;">
+                            <div class="approvals-banner">
+                                Approvals
+                            </div>
+                            <table style="width: 100%;" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td style="width: 33.3%; padding: 8pt 14pt; vertical-align: top; font-size: 8.52pt;">
+                                        <strong>Requested by (hiring manager)</strong>
+                                        <div style="height: 35pt; padding-top: 8pt; font-style: italic;">
+                                            {{ req.requested_by.get_full_name|default:req.requested_by|default:"" }}
+                                        </div>
+                                        <div>Date: &nbsp; {{ req.requested_date|date:"d.m.y"|default:"" }}</div>
+                                    </td>
+                                    <td style="width: 33.3%; padding: 8pt 14pt; vertical-align: top; font-size: 8.52pt;">
+                                        <strong>Checked HR Rep</strong>
+                                        <div style="height: 35pt; padding-top: 8pt; font-style: italic;">
+                                            {% if req.hr_reviewed_date %}
+                                                {{ req.hr_reviewer.get_full_name|default:req.hr_reviewer|default:"Sin Thida" }}
+                                            {% endif %}
+                                        </div>
+                                        <div>Date: &nbsp; {{ req.hr_reviewed_date|date:"d.m.y"|default:"" }}</div>
+                                    </td>
+                                    <td style="width: 33.4%; padding: 8pt 14pt; vertical-align: top; font-size: 8.52pt;">
+                                        <strong>Approved by CEO</strong>
+                                        <div style="height: 35pt; padding-top: 8pt; font-style: italic;">
+                                            {% if req.status == 'approved' and req.approved_date %}
+                                                {{ req.approved_by.get_full_name|default:req.approved_by|default:"KHIEU Sarvorneat" }}
+                                            {% endif %}
+                                        </div>
+                                        <div>Date: &nbsp; {{ req.approved_date|date:"d.m.y"|default:"" }}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Quality Form Footer -->
+                <table style="width: 100%; margin-top: 4pt; font-family: Calibri, Arial, sans-serif;" cellspacing="0" cellpadding="0">
+                    <tr>
+                        <td style="width: 50%;"></td>
+                        <td style="width: 50%; text-align: right; font-size: 7.80pt; line-height: 1.2; color: #000000;">
+                            RMO-HRA-QF-001<br>
+                            Revision 001<br>
+                            01.06.24
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>"""
+
+t = Template(template_str)
+
+# Test 1: Blank requisition (Must be exactly 1 page, matching RMO-HRA-QF-001 blank form)
+blank_ctx = Context({
+    'req': StaffRequisition(),
+    'logo_b64': logo_b64,
+    'chk_empty_html': chk_empty_html,
+    'chk_checked_html': chk_checked_html,
+})
+h_blank = t.render(blank_ctx)
+out_b = BytesIO()
+pisa.CreatePDF(h_blank, dest=out_b)
+doc_b = fitz.open(stream=out_b.getvalue(), filetype="pdf")
+print("1. Blank form page count:", len(doc_b))
+doc_b[0].get_pixmap(dpi=150).save("scratch/perfect_blank_page.png")
+
+# Test 2: Actual REQ-2026-0013 with 11 bullets from JD docx
+real_req = StaffRequisition.objects.get(requisition_code='REQ-2026-0013')
+real_ctx = Context({
+    'req': real_req,
+    'logo_b64': logo_b64,
+    'chk_empty_html': chk_empty_html,
+    'chk_checked_html': chk_checked_html,
+})
+h_real = t.render(real_ctx)
+out_r = BytesIO()
+pisa.CreatePDF(h_real, dest=out_r)
+doc_r = fitz.open(stream=out_r.getvalue(), filetype="pdf")
+print("2. REQ-2026-0013 page count:", len(doc_r))
+for i, page in enumerate(doc_r):
+    page.get_pixmap(dpi=150).save(f"scratch/perfect_real_p{i+1}.png")
+
+print("Rendering complete!")

@@ -11,6 +11,7 @@ import os
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -65,7 +66,15 @@ def staff_requisition_list(request):
     # Search filter
     search_q = request.GET.get("search")
     if search_q:
-        queryset = queryset.filter(position_title__icontains=search_q)
+        search_q = search_q.strip()
+        queryset = queryset.filter(
+            Q(position_title__icontains=search_q)
+            | Q(requisition_code__icontains=search_q)
+            | Q(location__icontains=search_q)
+            | Q(manager_name__icontains=search_q)
+            | Q(requested_by__employee_first_name__icontains=search_q)
+            | Q(requested_by__employee_last_name__icontains=search_q)
+        )
 
     departments = Department.objects.filter(is_active=True)
 

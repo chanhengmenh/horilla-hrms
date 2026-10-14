@@ -95,7 +95,8 @@
         /* Full Time / Part Time Framed Box */
         .blue-subbox {
             border: 0.75pt solid #41719c;
-            width: 100%;
+            width: 415pt;
+            margin-left: 35pt;
             margin-top: 3pt;
             margin-bottom: 3pt;
         }
@@ -201,7 +202,7 @@
                         <th style="width: 43.8%; border-right: none;">Position</th>
                     </tr>
                     <tr>
-                        <td>{{ req.requested_by|default:"" }}</td>
+                        <td>{{ req.requested_by_clean_name|default:req.manager_name|default:req.requested_by|default:"" }}</td>
                         <td style="border-right: none;">{{ req.manager_position|default:"" }}</td>
                     </tr>
                 </table>
@@ -395,26 +396,52 @@
                             </div>
                             <table style="width: 100%;" cellspacing="0" cellpadding="0">
                                 <tr>
-                                    <td style="width: 33.3%; padding: 8pt 14pt; vertical-align: top; font-size: 8.52pt;">
+                                    <td style="width: 38%; padding: 6pt 12pt 2pt 12pt; vertical-align: top; font-size: 8.52pt;">
                                         <strong>Requested by (hiring manager)</strong>
-                                        <div style="height: 35pt; padding-top: 8pt; font-style: italic;">
-                                            {{ req.requested_by|default:"" }}
-                                        </div>
-                                        <div>Date: &nbsp; {{ req.requested_date|date:"d.m.y"|default:"" }}</div>
                                     </td>
-                                    <td style="width: 33.3%; padding: 8pt 14pt; vertical-align: top; font-size: 8.52pt;">
+                                    <td style="width: 28.5%; padding: 6pt 12pt 2pt 12pt; vertical-align: top; font-size: 8.52pt;">
                                         <strong>Checked HR Rep</strong>
-                                        <div style="height: 35pt; padding-top: 8pt; font-style: italic;">
-                                            {{ req.hr_reviewer|default:"" }}
-                                        </div>
-                                        <div>Date: &nbsp; {{ req.hr_reviewed_date|date:"d.m.y"|default:"" }}</div>
                                     </td>
-                                    <td style="width: 33.4%; padding: 8pt 14pt; vertical-align: top; font-size: 8.52pt;">
+                                    <td style="width: 33.5%; padding: 6pt 12pt 2pt 12pt; vertical-align: top; font-size: 8.52pt;">
                                         <strong>Approved by CEO</strong>
-                                        <div style="height: 35pt; padding-top: 8pt; font-style: italic;">
-                                            {{ req.approved_by|default:"" }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width: 38%; padding: 0 12pt 0 27pt; vertical-align: bottom; font-size: 7.85pt; color: #000000; height: 50pt;">
+                                        <div style="font-size: 7.85pt; line-height: 1.25; color: #000000; font-weight: normal; margin: 0; padding: 0;">
+                                            {{ req.requested_by_clean_name|default:req.manager_name|default:req.requested_by|default:"" }}
                                         </div>
-                                        <div>Date: &nbsp; {{ req.approved_date|date:"d.m.y"|default:"" }}</div>
+                                        <div style="font-size: 7.85pt; line-height: 1.25; color: #000000; font-weight: normal; margin: 0; padding: 0;">
+                                            {{ req.manager_position|default:"" }}
+                                        </div>
+                                    </td>
+                                    <td style="width: 28.5%; padding: 0 12pt 0 27pt; vertical-align: bottom; font-size: 7.85pt; color: #000000; height: 50pt;">
+                                        <div style="height: 50pt; min-height: 50pt; line-height: 50pt; font-size: 1pt;">&nbsp;</div>
+                                    </td>
+                                    <td style="width: 33.5%; padding: 0 12pt 0 27pt; vertical-align: bottom; font-size: 7.85pt; color: #000000; height: 50pt;">
+                                        <div style="font-size: 7.85pt; line-height: 1.25; color: #000000; font-weight: normal; margin: 0; padding: 0;">
+                                            {{ req.approved_by_clean_name|default:req.ceo_name|default:"KHIEU Sarvorneat" }}
+                                        </div>
+                                        <div style="font-size: 7.85pt; line-height: 1.25; color: #000000; font-weight: normal; margin: 0; padding: 0;">
+                                            {{ req.approved_by_position|default:"Chief Executive Officer" }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width: 38%; padding: 0 12pt 8pt 27pt; vertical-align: top; font-size: 7.85pt; color: #000000;">
+                                        <div style="font-size: 7.85pt; line-height: 1.25; color: #000000; margin: 0; padding: 0;">
+                                            Date: &nbsp;{% if req.requested_date_formatted %}{{ req.requested_date_formatted }}{% elif req.requested_date %}{{ req.requested_date|date:"F d, Y" }}{% endif %}
+                                        </div>
+                                    </td>
+                                    <td style="width: 28.5%; padding: 0 12pt 8pt 27pt; vertical-align: top; font-size: 7.85pt; color: #000000;">
+                                        <div style="font-size: 7.85pt; line-height: 1.25; color: #000000; margin: 0; padding: 0;">
+                                            Date: &nbsp;{% if req.hr_reviewed_date_formatted %}{{ req.hr_reviewed_date_formatted }}{% elif req.hr_reviewed_date %}{{ req.hr_reviewed_date|date:"F d, Y" }}{% endif %}
+                                        </div>
+                                    </td>
+                                    <td style="width: 33.5%; padding: 0 12pt 8pt 27pt; vertical-align: top; font-size: 7.85pt; color: #000000;">
+                                        <div style="font-size: 7.85pt; line-height: 1.25; color: #000000; margin: 0; padding: 0;">
+                                            Date: &nbsp;{% if req.approved_date_formatted %}{{ req.approved_date_formatted }}{% elif req.approved_date %}{{ req.approved_date|date:"F d, Y" }}{% endif %}
+                                        </div>
                                     </td>
                                 </tr>
                             </table>

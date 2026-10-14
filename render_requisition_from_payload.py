@@ -57,13 +57,39 @@ def render_requisition_pdf_from_dict(payload: dict, output_pdf_path: str = None)
                     return PayloadWrapper({"department": dept}) if dept else ""
                 if name == "requested_by":
                     return self._data.get("manager_name", "")
+                if name == "requested_by_clean_name":
+                    import re
+                    m_name = self._data.get("manager_name") or self._data.get("requested_by") or ""
+                    return re.sub(r"\s*\([^)]*\)", "", str(m_name)).strip()
+                if name == "approved_by_clean_name":
+                    import re
+                    c_name = self._data.get("ceo_name") or self._data.get("approved_by") or "KHIEU Sarvorneat"
+                    return re.sub(r"\s*\([^)]*\)", "", str(c_name)).strip()
+                if name == "approved_by_position":
+                    return self._data.get("ceo_position", "Chief Executive Officer")
                 if name == "hr_reviewer":
                     return self._data.get("hr_rep_name", "")
                 if name == "approved_by":
-                    return self._data.get("ceo_name", "")
+                    return self._data.get("ceo_name", "KHIEU Sarvorneat")
                 if name == "job_description_file":
                     jd = self._data.get("job_description_file")
                     return type("FileStub", (), {"name": jd})() if jd else None
+                if name.endswith("_date_formatted"):
+                    base_field = name[:-10]  # strip '_formatted'
+                    d = self._data.get(base_field)
+                    if d:
+                        if isinstance(d, str):
+                            from datetime import datetime
+                            for fmt in ("%d.%m.%y", "%d.%m.%Y", "%Y-%m-%d", "%d/%m/%Y", "%d/%m/%y", "%B %d, %Y"):
+                                try:
+                                    d = datetime.strptime(d.strip(), fmt).date()
+                                    break
+                                except ValueError:
+                                    pass
+                        if hasattr(d, "strftime"):
+                            return d.strftime("%B %d, %Y")
+                        return str(d)
+                    return ""
                 return ""
             if name in ("target_onboarding_date", "period_from", "period_to", "requested_date", "hr_reviewed_date", "approved_date"):
                 if isinstance(val, str) and val.strip():

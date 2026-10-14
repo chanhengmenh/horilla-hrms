@@ -2346,10 +2346,88 @@ class StaffRequisition(HorillaModel):
     def __str__(self):
         return f"{self.requisition_code or f'REQ-{self.id}'} - {self.position_title} ({self.department_id})"
 
+    @property
+    def requested_by_clean_name(self):
+        """Returns clean manager name without badge ID suffix like (EXEC01)."""
+        if self.requested_by:
+            if hasattr(self.requested_by, "get_full_name"):
+                name = self.requested_by.get_full_name().strip()
+                if name:
+                    return name
+            import re
+            return re.sub(r"\s*\([^)]*\)", "", str(self.requested_by)).strip()
+        return ""
+
+    @property
+    def manager_name(self):
+        return self.requested_by_clean_name
+
+    @property
+    def ceo_name(self):
+        return self.approved_by_clean_name
+
+    @property
+    def hr_rep_name(self):
+        if self.hr_reviewer:
+            if hasattr(self.hr_reviewer, "get_full_name"):
+                return self.hr_reviewer.get_full_name().strip()
+            import re
+            return re.sub(r"\s*\([^)]*\)", "", str(self.hr_reviewer)).strip()
+        return ""
+
+    @property
+    def approved_by_clean_name(self):
+        """Returns clean CEO / approver name without badge ID suffix."""
+        if self.approved_by:
+            if hasattr(self.approved_by, "get_full_name"):
+                name = self.approved_by.get_full_name().strip()
+                if name:
+                    return name
+            import re
+            return re.sub(r"\s*\([^)]*\)", "", str(self.approved_by)).strip()
+        return "KHIEU Sarvorneat"
+
+    @property
+    def approved_by_position(self):
+        """Returns CEO / executive position title without prefix."""
+        if self.approved_by and hasattr(self.approved_by, "employee_work_info"):
+            work_info = getattr(self.approved_by, "employee_work_info", None)
+            if work_info and getattr(work_info, "job_position_id", None):
+                return str(work_info.job_position_id.job_position)
+        return "Chief Executive Officer"
+
+    def _format_approval_date(self, d):
+        if not d:
+            return ""
+        if isinstance(d, str):
+            from datetime import datetime
+            for fmt in ("%d.%m.%y", "%d.%m.%Y", "%Y-%m-%d", "%d/%m/%Y", "%d/%m/%y", "%B %d, %Y"):
+                try:
+                    d = datetime.strptime(d.strip(), fmt).date()
+                    break
+                except ValueError:
+                    pass
+        if hasattr(d, "strftime"):
+            return d.strftime("%B %d, %Y")
+        return str(d)
+
+    @property
+    def requested_date_formatted(self):
+        return self._format_approval_date(self.requested_date)
+
+    @property
+    def hr_reviewed_date_formatted(self):
+        return self._format_approval_date(self.hr_reviewed_date)
+
+    @property
+    def approved_date_formatted(self):
+        return self._format_approval_date(self.approved_date)
+
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         super().save(*args, **kwargs)
         if is_new and not self.requisition_code:
             self.requisition_code = f"REQ-{tz.now().year}-{self.pk:04d}"
             super().save(update_fields=["requisition_code"])
+
 

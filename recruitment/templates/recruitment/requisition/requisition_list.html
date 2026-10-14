@@ -2,17 +2,186 @@
 {% load i18n static %}
 
 {% block content %}
+<style>
+    /* Staff Requisition Theme & Night Mode Support */
+    .req-card {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    body.dark .req-card,
+    html.dark .req-card {
+        background-color: #1e1e1e !important;
+        border-color: #374151 !important;
+    }
+
+    .req-title {
+        color: #111827;
+        font-weight: 700;
+    }
+    body.dark .req-title,
+    html.dark .req-title {
+        color: #f9fafb !important;
+    }
+
+    .req-text-muted {
+        color: #6b7280;
+    }
+    body.dark .req-text-muted,
+    html.dark .req-text-muted {
+        color: #9ca3af !important;
+    }
+
+    .req-table thead {
+        background-color: #f9fafb;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    body.dark .req-table thead,
+    html.dark .req-table thead {
+        background-color: #181818 !important;
+        border-bottom: 2px solid #374151 !important;
+    }
+
+    .req-table th {
+        padding: 12px 16px;
+        font-weight: 600;
+        font-size: 0.825rem;
+        color: #4b5563;
+        letter-spacing: 0.3px;
+        border: none;
+    }
+    body.dark .req-table th,
+    html.dark .req-table th {
+        color: #d1d5db !important;
+    }
+
+    .req-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+        color: #1f2937;
+    }
+    body.dark .req-table td,
+    html.dark .req-table td {
+        border-bottom: 1px solid #2d2d2d !important;
+        color: #e5e7eb !important;
+    }
+
+    .req-table tr:hover td {
+        background-color: #f9fafb;
+    }
+    body.dark .req-table tr:hover td,
+    html.dark .req-table tr:hover td {
+        background-color: #262626 !important;
+    }
+
+    /* Status Badges */
+    .req-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.775rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        line-height: 1.25;
+    }
+    .req-badge--approved {
+        background-color: rgba(34, 197, 94, 0.15);
+        color: #16a34a;
+        border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+    body.dark .req-badge--approved {
+        color: #4ade80 !important;
+        border-color: rgba(74, 222, 128, 0.4) !important;
+    }
+    .req-badge--reviewed {
+        background-color: rgba(59, 130, 246, 0.15);
+        color: #2563eb;
+        border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+    body.dark .req-badge--reviewed {
+        color: #60a5fa !important;
+        border-color: rgba(96, 165, 250, 0.4) !important;
+    }
+    .req-badge--submitted {
+        background-color: rgba(245, 158, 11, 0.15);
+        color: #d97706;
+        border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    body.dark .req-badge--submitted {
+        color: #fbbf24 !important;
+        border-color: rgba(251, 191, 36, 0.4) !important;
+    }
+    .req-badge--rejected {
+        background-color: rgba(239, 68, 68, 0.15);
+        color: #dc2626;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    body.dark .req-badge--rejected {
+        color: #f87171 !important;
+        border-color: rgba(248, 113, 113, 0.4) !important;
+    }
+
+    /* Type Badges */
+    .req-type--permanent {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+        border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    body.dark .req-type--permanent {
+        color: #93c5fd !important;
+        background-color: rgba(59, 130, 246, 0.2) !important;
+    }
+    .req-type--contract {
+        background-color: rgba(217, 119, 6, 0.1);
+        color: #b45309;
+        border: 1px solid rgba(217, 119, 6, 0.25);
+    }
+    body.dark .req-type--contract {
+        color: #fcd34d !important;
+        background-color: rgba(217, 119, 6, 0.2) !important;
+    }
+    .req-type--intern {
+        background-color: rgba(147, 51, 234, 0.1);
+        color: #7e22ce;
+        border: 1px solid rgba(147, 51, 234, 0.25);
+    }
+    body.dark .req-type--intern {
+        color: #d8b4fe !important;
+        background-color: rgba(147, 51, 234, 0.2) !important;
+    }
+
+    /* Links & Buttons */
+    .req-code-link {
+        color: var(--primary-600, #e54f38);
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .req-code-link:hover {
+        color: var(--primary-700, #ce4732);
+        text-decoration: underline;
+    }
+    body.dark .req-code-link {
+        color: var(--primary-400, #f87171) !important;
+    }
+    body.dark .req-code-link:hover {
+        color: var(--primary-300, #fca5a5) !important;
+    }
+</style>
+
 <div class="oh-wrapper">
     <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-3 mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-3 mt-2 flex-wrap gap-2">
         <div>
-            <h1 class="oh-title" style="font-size: 1.5rem; font-weight: 700; color: #1f2937;">
+            <h1 class="oh-title req-title mb-1" style="font-size: 1.5rem;">
                 {% trans "Staff Requisitions" %}
-                <span class="badge" style="background-color: #f3f4f6; color: #4b5563; font-size: 0.75rem; border: 1px solid #d1d5db; padding: 4px 8px; border-radius: 4px; vertical-align: middle; margin-left: 8px;">
+                <span class="badge" style="background-color: rgba(107, 114, 128, 0.15); color: inherit; font-size: 0.75rem; border: 1px solid rgba(107, 114, 128, 0.3); padding: 3px 8px; border-radius: 4px; vertical-align: middle; margin-left: 8px;">
                     RMO-HRA-QF-001
                 </span>
             </h1>
-            <p class="text-muted" style="margin: 0; font-size: 0.875rem;">
+            <p class="req-text-muted" style="margin: 0; font-size: 0.875rem;">
                 {% trans "Executive headcount requests, approval workflow, and official ticket generation." %}
             </p>
         </div>
@@ -24,7 +193,7 @@
             {% if is_executive %}
             <a href="{% url 'staff-requisition-create' %}" class="oh-btn oh-btn--primary">
                 <ion-icon name="add-circle-outline" class="me-1"></ion-icon>
-                {% trans "New Requisition (Executive)" %}
+                {% trans "New Requisition" %}
             </a>
             {% else %}
             <span class="badge bg-light text-muted border p-2" title="{% trans 'Only Executives / Department Heads can request headcount' %}">
@@ -46,14 +215,42 @@
     </div>
     {% endif %}
 
-    <!-- Filter Bar -->
-    <div class="oh-card p-3 mb-4" style="background: #fff; border-radius: 8px; border: 1px solid #e5e7eb;">
-        <form method="get" class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <input type="text" name="search" value="{{ request.GET.search }}" class="oh-input w-100" placeholder="{% trans 'Search position title...' %}" />
+    <!-- Filter Bar (Instant Real-time Filter) -->
+    <div class="oh-card req-card p-3 mb-4">
+        <form method="get" id="requisitionFilterForm"
+              hx-get="{% url 'staff-requisition-view' %}"
+              hx-target="#requisitionTableContainer"
+              hx-select="#requisitionTableContainer"
+              hx-swap="outerHTML"
+              hx-push-url="true"
+              class="row g-2 align-items-center">
+            <!-- Search Box: Automatic Live Filter -->
+            <div class="col-md-5">
+                <div class="position-relative w-100">
+                    <ion-icon name="search-outline" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 1.15rem; color: #9ca3af; pointer-events: none; z-index: 2;"></ion-icon>
+                    <input type="text"
+                           name="search"
+                           id="requisitionSearchInput"
+                           value="{{ request.GET.search }}"
+                           class="oh-input w-100"
+                           style="padding-left: 38px; padding-right: 32px;"
+                           placeholder="{% trans 'Search position title, requisition code, manager...' %}"
+                           hx-trigger="keyup changed delay:300ms, search"
+                           oninput="handleSearchAutoFilter(this)"
+                           autocomplete="off" />
+                    <a href="javascript:void(0)"
+                       id="searchClearBtn"
+                       onclick="clearSearchInput()"
+                       style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; text-decoration: none; display: {% if request.GET.search %}block{% else %}none{% endif %}; z-index: 2;"
+                       title="{% trans 'Clear search' %}">
+                        <ion-icon name="close-circle" style="font-size: 1.15rem;"></ion-icon>
+                    </a>
+                </div>
             </div>
+
+            <!-- Status Dropdown: Instant Filter on Select -->
             <div class="col-md-3">
-                <select name="status" class="oh-input w-100">
+                <select name="status" class="oh-input w-100" hx-trigger="change" onchange="triggerFilterSubmit(this)">
                     <option value="">{% trans "All Statuses" %}</option>
                     <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>{% trans "Submitted (Pending)" %}</option>
                     <option value="reviewed_hr" {% if status_filter == 'reviewed_hr' %}selected{% endif %}>{% trans "Reviewed by HR" %}</option>
@@ -61,8 +258,10 @@
                     <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>{% trans "Rejected" %}</option>
                 </select>
             </div>
+
+            <!-- Department Dropdown: Instant Filter on Select -->
             <div class="col-md-3">
-                <select name="department_id" class="oh-input w-100">
+                <select name="department_id" class="oh-input w-100" hx-trigger="change" onchange="triggerFilterSubmit(this)">
                     <option value="">{% trans "All Departments" %}</option>
                     {% for dept in departments %}
                     <option value="{{ dept.id }}" {% if request.GET.department_id == dept.id|stringformat:"s" %}selected{% endif %}>
@@ -71,100 +270,103 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2 d-flex gap-2">
-                <button type="submit" class="oh-btn oh-btn--secondary w-100">
-                    <ion-icon name="filter-outline"></ion-icon> {% trans "Filter" %}
-                </button>
-                <a href="{% url 'staff-requisition-view' %}" class="oh-btn oh-btn--light" title="{% trans 'Reset' %}">
-                    <ion-icon name="refresh-outline"></ion-icon>
+
+            <!-- Reset Button -->
+            <div class="col-md-1 d-flex justify-content-end">
+                <a href="{% url 'staff-requisition-view' %}" class="oh-btn oh-btn--light w-100" title="{% trans 'Reset filters' %}" style="display: flex; align-items: center; justify-content: center;">
+                    <ion-icon name="refresh-outline" style="font-size: 1.15rem;"></ion-icon>
                 </a>
             </div>
         </form>
     </div>
 
-    <!-- Table Section -->
-    <div class="oh-card" style="background: #fff; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden;">
+    <!-- Table Section (Swapped by HTMX on live filter) -->
+    <div id="requisitionTableContainer" class="oh-card req-card" style="overflow: hidden;">
         {% if requisitions %}
         <div class="table-responsive">
-            <table class="table table-hover mb-0" style="vertical-align: middle;">
-                <thead style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+            <table class="table mb-0 req-table" style="vertical-align: middle;">
+                <thead>
                     <tr>
-                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Requisition Code" %}</th>
-                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Date" %}</th>
-                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Position to be Requested" %}</th>
-                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Department" %}</th>
-                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Headcount" %}</th>
-                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Type & Category" %}</th>
-                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Requested By" %}</th>
-                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563;">{% trans "Status" %}</th>
-                        <th style="padding: 12px 16px; font-weight: 600; font-size: 0.85rem; color: #4b5563; text-align: right;">{% trans "Actions" %}</th>
+                        <th>{% trans "Requisition Code" %}</th>
+                        <th>{% trans "Date" %}</th>
+                        <th>{% trans "Position to be Requested" %}</th>
+                        <th>{% trans "Department" %}</th>
+                        <th class="text-center">{% trans "Headcount" %}</th>
+                        <th>{% trans "Type & Category" %}</th>
+                        <th>{% trans "Requested By" %}</th>
+                        <th>{% trans "Status" %}</th>
+                        <th style="text-align: right;">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for req in requisitions %}
-                    <tr style="border-bottom: 1px solid #f3f4f6;">
-                        <td style="padding: 14px 16px;">
-                            <a href="{% url 'staff-requisition-detail' req.id %}" style="font-weight: 600; color: #e54f38; text-decoration: none;">
+                    <tr>
+                        <td>
+                            <a href="{% url 'staff-requisition-detail' req.id %}" class="req-code-link">
                                 {{ req.requisition_code }}
                             </a>
                         </td>
-                        <td style="padding: 14px 16px; font-size: 0.875rem; color: #6b7280;">
+                        <td class="req-text-muted" style="font-size: 0.85rem;">
                             {{ req.requested_date|date:"M d, Y" }}
                         </td>
-                        <td style="padding: 14px 16px;">
-                            <div style="font-weight: 600; color: #111827;">{{ req.position_title }}</div>
-                            <div style="font-size: 0.75rem; color: #9ca3af;">{{ req.location }} • {{ req.function }}</div>
+                        <td>
+                            <div class="req-title" style="font-size: 0.925rem;">{{ req.position_title }}</div>
+                            <div class="req-text-muted" style="font-size: 0.75rem;">{{ req.location }} • {{ req.function }}</div>
                         </td>
-                        <td style="padding: 14px 16px; font-size: 0.875rem;">
+                        <td style="font-size: 0.875rem;">
                             {{ req.department_id.department }}
                         </td>
-                        <td style="padding: 14px 16px; font-size: 0.875rem; font-weight: 600;">
+                        <td class="text-center" style="font-size: 0.95rem; font-weight: 700;">
                             {{ req.headcount }}
                         </td>
-                        <td style="padding: 14px 16px; font-size: 0.875rem;">
+                        <td style="font-size: 0.85rem;">
                             {% if req.employment_type == 'permanent' %}
-                                <span class="badge" style="background-color: #dbeafe; color: #1e40af;">{% trans "Permanent" %}</span>
-                                <div style="font-size: 0.75rem; color: #6b7280; margin-top: 2px;">
+                                <span class="req-badge req-type--permanent">{% trans "Permanent" %}</span>
+                                <div class="req-text-muted" style="font-size: 0.725rem; margin-top: 3px;">
                                     {{ req.get_permanent_category_display|default:"" }}
                                 </div>
                             {% elif req.employment_type == 'contract' %}
-                                <span class="badge" style="background-color: #fef3c7; color: #92400e;">{% trans "Contract" %}</span>
-                                <div style="font-size: 0.75rem; color: #6b7280; margin-top: 2px;">
+                                <span class="req-badge req-type--contract">{% trans "Contract" %}</span>
+                                <div class="req-text-muted" style="font-size: 0.725rem; margin-top: 3px;">
                                     {{ req.get_contract_term_display|default:"" }}
                                 </div>
                             {% else %}
-                                <span class="badge" style="background-color: #f3e8ff; color: #6b21a8;">{% trans "Intern" %}</span>
+                                <span class="req-badge req-type--intern">{% trans "Intern" %}</span>
                             {% endif %}
                         </td>
-                        <td style="padding: 14px 16px; font-size: 0.875rem;">
-                            <div style="font-weight: 500;">{{ req.requested_by }}</div>
-                            <div style="font-size: 0.75rem; color: #9ca3af;">{{ req.manager_position }}</div>
+                        <td style="font-size: 0.875rem;">
+                            <div style="font-weight: 600;">{{ req.requested_by }}</div>
+                            <div class="req-text-muted" style="font-size: 0.75rem;">{{ req.manager_position }}</div>
                         </td>
-                        <td style="padding: 14px 16px;">
+                        <td>
                             {% if req.status == 'approved' %}
-                                <span class="badge" style="background-color: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px;">
-                                    <ion-icon name="checkmark-done-circle-outline" style="vertical-align: -1px;"></ion-icon> {% trans "Approved (CEO)" %}
+                                <span class="req-badge req-badge--approved">
+                                    <ion-icon name="checkmark-done-circle" style="font-size: 1rem;"></ion-icon>
+                                    {% trans "Approved (CEO)" %}
                                 </span>
                             {% elif req.status == 'reviewed_hr' %}
-                                <span class="badge" style="background-color: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px;">
-                                    <ion-icon name="eye-outline" style="vertical-align: -1px;"></ion-icon> {% trans "Reviewed by HR" %}
+                                <span class="req-badge req-badge--reviewed">
+                                    <ion-icon name="eye-outline" style="font-size: 1rem;"></ion-icon>
+                                    {% trans "Reviewed by HR" %}
                                 </span>
                             {% elif req.status == 'rejected' %}
-                                <span class="badge" style="background-color: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px;">
-                                    <ion-icon name="close-circle-outline" style="vertical-align: -1px;"></ion-icon> {% trans "Rejected" %}
+                                <span class="req-badge req-badge--rejected">
+                                    <ion-icon name="close-circle" style="font-size: 1rem;"></ion-icon>
+                                    {% trans "Rejected" %}
                                 </span>
                             {% else %}
-                                <span class="badge" style="background-color: #fef9c3; color: #854d0e; padding: 4px 8px; border-radius: 4px;">
-                                    <ion-icon name="time-outline" style="vertical-align: -1px;"></ion-icon> {% trans "Submitted (Pending)" %}
+                                <span class="req-badge req-badge--submitted">
+                                    <ion-icon name="time-outline" style="font-size: 1rem;"></ion-icon>
+                                    {% trans "Submitted (Pending)" %}
                                 </span>
                             {% endif %}
                         </td>
-                        <td style="padding: 14px 16px; text-align: right;">
-                            <div class="btn-group" role="group">
-                                <a href="{% url 'staff-requisition-pdf' req.id %}" class="oh-btn oh-btn--small oh-btn--secondary" title="{% trans 'Download PDF Ticket' %}">
+                        <td style="text-align: right;">
+                            <div class="d-inline-flex gap-1">
+                                <a href="{% url 'staff-requisition-pdf' req.id %}" class="oh-btn oh-btn--small oh-btn--secondary" title="{% trans 'Download PDF Ticket (RMO-HRA-QF-001)' %}">
                                     <ion-icon name="document-text-outline" class="me-1"></ion-icon> {% trans "PDF Ticket" %}
                                 </a>
-                                <a href="{% url 'staff-requisition-detail' req.id %}" class="oh-btn oh-btn--small oh-btn--light ms-1" title="{% trans 'View details' %}">
+                                <a href="{% url 'staff-requisition-detail' req.id %}" class="oh-btn oh-btn--small oh-btn--light" title="{% trans 'View details' %}">
                                     <ion-icon name="eye-outline"></ion-icon>
                                 </a>
                             </div>
@@ -177,15 +379,21 @@
         {% else %}
         <div class="text-center p-5">
             <ion-icon name="document-text-outline" style="font-size: 3rem; color: #9ca3af; margin-bottom: 12px;"></ion-icon>
-            <h4 style="color: #4b5563; font-weight: 600;">{% trans "No Staff Requisitions Found" %}</h4>
-            <p class="text-muted" style="max-width: 500px; margin: 0 auto 20px;">
-                {% if is_executive %}
+            <h4 class="req-title" style="font-weight: 600;">{% trans "No Staff Requisitions Found" %}</h4>
+            <p class="req-text-muted" style="max-width: 500px; margin: 0 auto 20px;">
+                {% if request.GET.search or request.GET.status or request.GET.department_id %}
+                    {% trans "No requisitions matched your filter criteria. Try adjusting or clearing your search." %}
+                {% elif is_executive %}
                     {% trans "No headcount requests have been submitted yet. Click 'New Requisition' to fill out the RMO-HRA-QF-001 form." %}
                 {% else %}
                     {% trans "No staff requisitions are currently pending review or audit." %}
                 {% endif %}
             </p>
-            {% if is_executive %}
+            {% if request.GET.search or request.GET.status or request.GET.department_id %}
+            <a href="{% url 'staff-requisition-view' %}" class="oh-btn oh-btn--secondary">
+                <ion-icon name="refresh-outline" class="me-1"></ion-icon> {% trans "Clear Filters" %}
+            </a>
+            {% elif is_executive %}
             <a href="{% url 'staff-requisition-create' %}" class="oh-btn oh-btn--primary">
                 <ion-icon name="add-circle-outline" class="me-1"></ion-icon>
                 {% trans "Submit First Requisition" %}
@@ -195,4 +403,39 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+function triggerFilterSubmit(el) {
+    var form = el.form || document.getElementById('requisitionFilterForm');
+    if (!form) return;
+    if (window.htmx) {
+        htmx.trigger(form, 'submit');
+    } else {
+        form.submit();
+    }
+}
+
+var reqSearchDebounceTimer = null;
+function handleSearchAutoFilter(inputEl) {
+    var clearBtn = document.getElementById('searchClearBtn');
+    if (clearBtn) {
+        clearBtn.style.display = inputEl.value ? 'block' : 'none';
+    }
+    clearTimeout(reqSearchDebounceTimer);
+    reqSearchDebounceTimer = setTimeout(function() {
+        triggerFilterSubmit(inputEl);
+    }, 320);
+}
+
+function clearSearchInput() {
+    var input = document.getElementById('requisitionSearchInput');
+    if (input) {
+        input.value = '';
+        var clearBtn = document.getElementById('searchClearBtn');
+        if (clearBtn) clearBtn.style.display = 'none';
+        triggerFilterSubmit(input);
+        input.focus();
+    }
+}
+</script>
 {% endblock %}

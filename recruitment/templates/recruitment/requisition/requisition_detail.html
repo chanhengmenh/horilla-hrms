@@ -2,6 +2,88 @@
 {% load i18n static %}
 
 {% block content %}
+<style>
+    /* Staff Requisition Detail Night & Light Mode */
+    .req-detail-card {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+    body.dark .req-detail-card,
+    html.dark .req-detail-card {
+        background-color: #1e1e1e !important;
+        border-color: #374151 !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .req-panel {
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        color: #1f2937;
+    }
+    body.dark .req-panel,
+    html.dark .req-panel {
+        background-color: #242424 !important;
+        border-color: #374151 !important;
+        color: #e5e7eb !important;
+    }
+
+    .req-sec-header {
+        font-weight: 700;
+        color: #1f2937;
+        border-bottom: 2px solid #f3f4f6;
+        padding-bottom: 6px;
+    }
+    body.dark .req-sec-header,
+    html.dark .req-sec-header {
+        color: #f3f4f6 !important;
+        border-bottom-color: #374151 !important;
+    }
+
+    .req-num {
+        color: var(--primary-600, #e54f38);
+        font-weight: 700;
+    }
+    body.dark .req-num {
+        color: var(--primary-400, #f87171) !important;
+    }
+
+    .req-val {
+        font-weight: 600;
+        color: #111827;
+    }
+    body.dark .req-val,
+    html.dark .req-val {
+        color: #f9fafb !important;
+    }
+
+    .req-tier-box {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        transition: border-color 0.2s ease;
+    }
+    body.dark .req-tier-box,
+    html.dark .req-tier-box {
+        background-color: #242424 !important;
+        border-color: #374151 !important;
+    }
+
+    .req-action-box {
+        background-color: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+    }
+    body.dark .req-action-box,
+    html.dark .req-action-box {
+        background-color: #181818 !important;
+        border-color: #374151 !important;
+    }
+</style>
+
 <div class="oh-wrapper" style="max-width: 1100px; margin: 0 auto; padding-bottom: 50px;">
     <!-- Breadcrumb & Top Bar -->
     <div class="d-flex justify-content-between align-items-center mb-3 mt-2">
@@ -28,12 +110,12 @@
     {% endif %}
 
     <!-- Requisition Ticket Card -->
-    <div class="oh-card" style="background: #ffffff; border-radius: 10px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden;">
-        <!-- Header -->
-        <div style="background: #1f2937; color: #ffffff; padding: 24px 32px; border-bottom: 3px solid #e54f38;">
+    <div class="oh-card req-detail-card">
+        <!-- Header Banner -->
+        <div style="background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: #ffffff; padding: 24px 32px; border-bottom: 3px solid var(--primary-600, #e54f38);">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                    <span style="display: inline-block; background: #e54f38; color: #fff; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; margin-bottom: 6px;">
+                    <span style="display: inline-block; background: var(--primary-600, #e54f38); color: #fff; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; margin-bottom: 6px;">
                         FORM RMO-HRA-QF-001
                     </span>
                     <h2 style="font-size: 1.6rem; font-weight: 700; margin: 0; color: #ffffff;">
@@ -68,89 +150,89 @@
         <div style="padding: 32px;">
             <!-- 1. Position Details -->
             <div class="mb-4">
-                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
-                    <span style="color: #e54f38;">1.</span> {% trans "Position Details" %}
+                <h5 class="req-sec-header">
+                    <span class="req-num">1.</span> {% trans "Position Details" %}
                 </h5>
                 <div class="row g-3 mt-1">
                     <div class="col-md-3">
                         <span class="text-muted small">{% trans "Position Requested" %}</span>
-                        <div class="fw-bold">{{ req.position_title }}</div>
+                        <div class="req-val">{{ req.position_title }}</div>
                     </div>
                     <div class="col-md-3">
                         <span class="text-muted small">{% trans "Based Location" %}</span>
-                        <div class="fw-bold">{{ req.location }}</div>
+                        <div class="req-val">{{ req.location }}</div>
                     </div>
                     <div class="col-md-3">
                         <span class="text-muted small">{% trans "Function / Division" %}</span>
-                        <div class="fw-bold">{{ req.function }}</div>
+                        <div class="req-val">{{ req.function }}</div>
                     </div>
                     <div class="col-md-3">
                         <span class="text-muted small">{% trans "Department" %}</span>
-                        <div class="fw-bold">{{ req.department_id.department }}</div>
+                        <div class="req-val">{{ req.department_id.department }}</div>
                     </div>
                     <div class="col-md-3">
                         <span class="text-muted small">{% trans "Headcount Requested" %}</span>
-                        <div class="fw-bold fs-5 text-primary">{{ req.headcount }} {% trans "Pax" %}</div>
+                        <div class="req-val fs-5" style="color: var(--primary-600, #e54f38);">{{ req.headcount }} {% trans "Pax" %}</div>
                     </div>
                     <div class="col-md-3">
                         <span class="text-muted small">{% trans "Job Position Linkage" %}</span>
-                        <div>{{ req.job_position_id.job_position|default:"None (New Role)" }}</div>
+                        <div class="req-val">{{ req.job_position_id.job_position|default:"None (New Role)" }}</div>
                     </div>
                 </div>
             </div>
 
             <!-- 2. Line Manager's Details -->
             <div class="mb-4">
-                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
-                    <span style="color: #e54f38;">2.</span> {% trans "Line Manager's Details" %}
+                <h5 class="req-sec-header">
+                    <span class="req-num">2.</span> {% trans "Line Manager's Details" %}
                 </h5>
-                <div class="row g-3 mt-1 p-3" style="background: #f9fafb; border-radius: 8px;">
+                <div class="row g-3 mt-1 p-3 req-panel">
                     <div class="col-md-4">
                         <span class="text-muted small">{% trans "Manager's Name" %}</span>
-                        <div class="fw-bold">{{ req.requested_by }}</div>
+                        <div class="req-val">{{ req.requested_by }}</div>
                     </div>
                     <div class="col-md-4">
                         <span class="text-muted small">{% trans "Manager's Position" %}</span>
-                        <div class="fw-bold">{{ req.manager_position }}</div>
+                        <div class="req-val">{{ req.manager_position }}</div>
                     </div>
                     <div class="col-md-4">
                         <span class="text-muted small">{% trans "Manager's Email" %}</span>
-                        <div class="fw-bold">{{ req.manager_email|default:"N/A" }}</div>
+                        <div class="req-val">{{ req.manager_email|default:"N/A" }}</div>
                     </div>
                 </div>
             </div>
 
             <!-- 3. Employment Status -->
             <div class="mb-4">
-                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
-                    <span style="color: #e54f38;">3.</span> {% trans "Employment Status" %}
+                <h5 class="req-sec-header">
+                    <span class="req-num">3.</span> {% trans "Employment Status" %}
                 </h5>
                 <div class="row g-3 mt-1">
                     <div class="col-md-4">
                         <span class="text-muted small">{% trans "Type of Employment" %}</span>
-                        <div class="fw-bold text-uppercase">{{ req.get_employment_type_display }}</div>
+                        <div class="req-val text-uppercase">{{ req.get_employment_type_display }}</div>
                     </div>
 
                     {% if req.employment_type == 'permanent' %}
                     <div class="col-md-4">
                         <span class="text-muted small">{% trans "Permanent Category" %}</span>
-                        <div class="fw-bold text-primary">{{ req.get_permanent_category_display }}</div>
+                        <div class="req-val" style="color: var(--primary-600, #e54f38);">{{ req.get_permanent_category_display }}</div>
                     </div>
                     <div class="col-md-4">
                         <span class="text-muted small">{% trans "Target Onboarding Date" %}</span>
-                        <div class="fw-bold">{{ req.target_onboarding_date|date:"F d, Y"|default:"Not specified" }}</div>
+                        <div class="req-val">{{ req.target_onboarding_date|date:"F d, Y"|default:"Not specified" }}</div>
                     </div>
                     <div class="col-md-4">
                         <span class="text-muted small">{% trans "Position Level / Grade" %}</span>
-                        <div class="fw-bold">{{ req.position_level|default:"Standard" }}</div>
+                        <div class="req-val">{{ req.position_level|default:"Standard" }}</div>
                     </div>
 
                     {% if req.permanent_category == 'replacement' %}
-                    <div class="col-md-12 p-3 mt-2" style="background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe;">
+                    <div class="col-md-12 p-3 mt-2 req-panel" style="border-left: 4px solid var(--primary-600, #e54f38);">
                         <div class="row">
                             <div class="col-md-6">
                                 <span class="text-muted small">{% trans "Replacement For" %}</span>
-                                <div class="fw-bold text-danger">{{ req.replacement_for }}</div>
+                                <div class="req-val text-danger">{{ req.replacement_for }}</div>
                             </div>
                             <div class="col-md-6">
                                 <span class="text-muted small">{% trans "Reason(s) for Replacement" %}</span>
@@ -163,15 +245,15 @@
                     {% else %}
                     <div class="col-md-4">
                         <span class="text-muted small">{% trans "Contract Term" %}</span>
-                        <div class="fw-bold">{{ req.get_contract_term_display|default:"Full Time" }}</div>
+                        <div class="req-val">{{ req.get_contract_term_display|default:"Full Time" }}</div>
                     </div>
                     <div class="col-md-4">
                         <span class="text-muted small">{% trans "Period" %}</span>
-                        <div class="fw-bold">{{ req.period_from|date:"M d, Y" }} &rarr; {{ req.period_to|date:"M d, Y" }}</div>
+                        <div class="req-val">{{ req.period_from|date:"M d, Y" }} &rarr; {{ req.period_to|date:"M d, Y" }}</div>
                     </div>
                     <div class="col-md-12">
                         <span class="text-muted small">{% trans "Working Day & Hour" %}</span>
-                        <div class="fw-bold">{{ req.working_days_hours }}</div>
+                        <div class="req-val">{{ req.working_days_hours }}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -179,23 +261,23 @@
 
             <!-- 4. Justification -->
             <div class="mb-4">
-                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
-                    <span style="color: #e54f38;">4.</span> {% trans "Justification (Why is this position needed?)" %}
+                <h5 class="req-sec-header">
+                    <span class="req-num">4.</span> {% trans "Justification (Why is this position needed?)" %}
                 </h5>
-                <div class="p-3 mt-1" style="background: #f9fafb; border-radius: 8px; line-height: 1.6; white-space: pre-wrap;">{{ req.justification }}</div>
+                <div class="p-3 mt-1 req-panel" style="line-height: 1.6; white-space: pre-wrap;">{{ req.justification }}</div>
             </div>
 
             <!-- 5. Position Requirements -->
             <div class="mb-4">
-                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
-                    <span style="color: #e54f38;">5.</span> {% trans "Position Requirements (refer to JD attached)" %}
+                <h5 class="req-sec-header">
+                    <span class="req-num">5.</span> {% trans "Position Requirements (refer to JD attached)" %}
                 </h5>
-                <div class="p-3 mt-1" style="background: #f9fafb; border-radius: 8px; line-height: 1.6; white-space: pre-wrap;">{{ req.position_requirements }}</div>
+                <div class="p-3 mt-1 req-panel" style="line-height: 1.6; white-space: pre-wrap;">{{ req.position_requirements }}</div>
 
                 {% if req.job_description_file %}
                 <div class="mt-2">
                     <span class="text-muted small">{% trans "Job Description Attachment:" %}</span>
-                    <a href="{{ req.job_description_file.url }}" target="_blank" class="ms-2 fw-bold text-primary">
+                    <a href="{{ req.job_description_file.url }}" target="_blank" class="ms-2 fw-bold" style="color: var(--primary-600, #e54f38);">
                         <ion-icon name="document-attach-outline"></ion-icon> {% trans "View Attached JD" %}
                     </a>
                 </div>
@@ -204,15 +286,15 @@
 
             <!-- 6. Approvals (3-Tier Sign-off Hierarchy) -->
             <div class="mb-4">
-                <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
-                    <span style="color: #e54f38;">6.</span> {% trans "Approvals & Sign-off Hierarchy" %}
+                <h5 class="req-sec-header">
+                    <span class="req-num">6.</span> {% trans "Approvals & Sign-off Hierarchy" %}
                 </h5>
                 <div class="row g-3 mt-1">
                     <!-- Tier 1: Requested by (hiring manager) -->
                     <div class="col-md-4">
-                        <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
+                        <div class="p-3 h-100 text-center req-tier-box">
                             <div class="badge bg-light text-dark mb-2">{% trans "Tier 1: Requested by (Hiring Manager)" %}</div>
-                            <div class="fw-bold">{{ req.requested_by }}</div>
+                            <div class="req-val">{{ req.requested_by }}</div>
                             <div class="small text-muted">{{ req.manager_position }}</div>
                             <div class="small text-success mt-2">
                                 <ion-icon name="checkmark-circle-outline"></ion-icon> {% trans "Submitted" %}: {{ req.requested_date|date:"M d, Y" }}
@@ -222,9 +304,9 @@
 
                     <!-- Tier 2: Checked HR Rep -->
                     <div class="col-md-4">
-                        <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
+                        <div class="p-3 h-100 text-center req-tier-box">
                             <div class="badge bg-light text-dark mb-2">{% trans "Tier 2: Checked HR Rep" %}</div>
-                            <div class="fw-bold">{{ req.hr_reviewer|default:"Ms. Sin Thida" }}</div>
+                            <div class="req-val">{{ req.hr_reviewer|default:"Ms. Sin Thida" }}</div>
                             <div class="small text-muted">{% trans "HR & Admin Manager" %}</div>
                             {% if req.hr_reviewed_date %}
                             <div class="small text-success mt-2">
@@ -238,9 +320,9 @@
 
                     <!-- Tier 3: Approved by CEO -->
                     <div class="col-md-4">
-                        <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
+                        <div class="p-3 h-100 text-center req-tier-box">
                             <div class="badge bg-light text-dark mb-2">{% trans "Tier 3: Approved by CEO" %}</div>
-                            <div class="fw-bold">{{ req.approved_by|default:"Mr. KHIEU Sarvorneat" }}</div>
+                            <div class="req-val">{{ req.approved_by|default:"Mr. KHIEU Sarvorneat" }}</div>
                             <div class="small text-muted">{% trans "Chief Executive Officer" %}</div>
                             {% if req.approved_date %}
                             <div class="small text-success mt-2">
@@ -256,8 +338,8 @@
 
             <!-- Workflow Action Box (For HR Reviewer or CEO Approver) -->
             {% if is_auditor or is_executive %}
-            <div class="p-4 mt-4" style="background: #f8fafc; border-radius: 8px; border: 1px solid #cbd5e1;">
-                <h6 class="fw-bold text-dark mb-3">
+            <div class="p-4 mt-4 req-action-box">
+                <h6 class="fw-bold mb-3 req-title">
                     <ion-icon name="options-outline" style="vertical-align: -2px;"></ion-icon>
                     {% trans "Administrative & Approval Actions" %}
                 </h6>
