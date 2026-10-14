@@ -54,52 +54,54 @@
         .col-table th {
             border-bottom: 0.75pt solid #000000;
             border-right: 0.75pt solid #000000;
-            padding: 3.5pt 5pt;
+            padding: 3pt 5pt;
             font-size: 7.80pt;
             font-weight: bold;
             text-align: left;
-            height: 15.6pt;
             background-color: #ffffff;
             color: #000000;
+            font-family: Arial, Helvetica, sans-serif;
         }
         .col-table td {
             border-bottom: 0.75pt solid #000000;
             border-right: 0.75pt solid #000000;
-            padding: 3.5pt 5pt;
+            padding: 3pt 5pt;
             font-size: 7.80pt;
             font-weight: normal;
-            height: 18.0pt;
             vertical-align: middle;
+            background-color: #ffffff;
             color: #000000;
+            font-family: Arial, Helvetica, sans-serif;
         }
         /* Employment Status section uses Calibri */
         .emp-status-container {
             font-family: Calibri, Arial, sans-serif;
             font-size: 7.85pt;
-            padding: 6pt 10pt 8pt 10pt;
+            padding: 4pt 8pt 5pt 8pt;
             border-bottom: 0.75pt solid #000000;
             color: #000000;
         }
         /* Boxed input fields inside Employment Status */
         .box-field {
             border: 0.75pt solid #000000;
-            height: 13.5pt;
-            line-height: 13.5pt;
-            padding: 0 4pt;
+            padding: 1.5pt 4pt;
             font-size: 7.85pt;
-            font-weight: bold;
+            font-weight: normal;
             background-color: #ffffff;
+            color: #000000;
+            font-family: Calibri, Arial, sans-serif;
+            min-height: 10.5pt;
         }
         /* Full Time / Part Time Framed Box */
         .blue-subbox {
             border: 0.75pt solid #41719c;
-            width: 98%;
-            margin-top: 4pt;
-            margin-bottom: 4pt;
+            width: 100%;
+            margin-top: 3pt;
+            margin-bottom: 3pt;
         }
         /* Scalable Content Areas for Justification & Position Requirements */
         .scalable-section {
-            padding: 5pt 8pt;
+            padding: 4pt 7pt;
             font-size: 7.80pt;
             line-height: 1.35;
             color: #000000;
@@ -180,10 +182,10 @@
                         <th style="width: 26.6%; border-right: none;"><span class="req-asterisk">*</span> Department</th>
                     </tr>
                     <tr>
-                        <td><strong>{{ req.position_title|default:"&nbsp;"|safe }}</strong></td>
+                        <td>{{ req.position_title|default:"&nbsp;"|safe }}</td>
                         <td>{{ req.location|default:"&nbsp;"|safe }}</td>
                         <td>{{ req.function|default:"&nbsp;"|safe }}</td>
-                        <td style="border-right: none;"><strong>{{ req.department_id.department|default:"" }}</strong></td>
+                        <td style="border-right: none;">{{ req.department_id.department|default:"" }}</td>
                     </tr>
                 </table>
 
@@ -210,50 +212,55 @@
                 </div>
 
                 <!-- Employment Status Details (Uses Calibri) -->
-                <div class="emp-status-container">
+                <table style="width: 100%; border-bottom: 0.75pt solid #000000;" cellspacing="0" cellpadding="0">
+                    <tr>
+                        <td style="padding: 4pt 10pt 5pt 10pt; font-family: Calibri, Arial, sans-serif; font-size: 7.85pt; color: #000000;">
                     
+                    <!-- Top section: Permanent (Left 56%) and Target Date/Level (Right 44%) -->
                     <table style="width: 100%;" cellspacing="0" cellpadding="0">
                         <tr>
                             <!-- Left Column: Permanent Checkbox and Options -->
                             <td style="width: 56%; vertical-align: top;">
-                                <table cellspacing="0" cellpadding="0" style="margin-bottom: 4pt;">
+                                <table cellspacing="0" cellpadding="0">
                                     <tr>
-                                        <td style="width: 14pt; vertical-align: middle;">
+                                        <td style="width: 13pt; vertical-align: middle; padding: 1.5pt 0;">
                                             {% if req.employment_type == 'permanent' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
                                         </td>
-                                        <td style="vertical-align: middle;"><strong style="font-size: 7.82pt;">PERMANENT</strong></td>
+                                        <td style="vertical-align: middle; padding: 1.5pt 0 1.5pt 3pt;"><strong style="font-size: 7.82pt;">PERMANENT</strong></td>
                                     </tr>
                                 </table>
 
-                                <table cellspacing="0" cellpadding="0" style="margin-left: 14pt; margin-bottom: 4pt;">
+                                <table cellspacing="0" cellpadding="0">
                                     <tr>
-                                        <td style="width: 14pt; vertical-align: middle;">
+                                        <td style="width: 12pt;"></td>
+                                        <td style="width: 13pt; vertical-align: middle; padding: 2pt 0;">
                                             {% if req.employment_type == 'permanent' and req.permanent_category == 'budgeted' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
                                         </td>
-                                        <td style="vertical-align: middle; font-size: 7.85pt;">Additional Headcount Budgetted</td>
+                                        <td style="vertical-align: middle; padding: 2pt 0 2pt 3pt; font-size: 7.85pt;">Additional Headcount Budgetted</td>
                                     </tr>
-                                </table>
-
-                                <table cellspacing="0" cellpadding="0" style="margin-left: 14pt; margin-bottom: 4pt;">
                                     <tr>
-                                        <td style="width: 14pt; vertical-align: middle;">
+                                        <td style="width: 12pt;"></td>
+                                        <td style="width: 13pt; vertical-align: middle; padding: 2pt 0;">
                                             {% if req.employment_type == 'permanent' and req.permanent_category == 'non_budgeted' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
                                         </td>
-                                        <td style="vertical-align: middle; font-size: 7.85pt;">Additional Headcount - Non-Budgetted</td>
+                                        <td style="vertical-align: middle; padding: 2pt 0 2pt 3pt; font-size: 7.85pt;">Additional Headcount - Non-Budgetted</td>
                                     </tr>
                                 </table>
                             </td>
 
                             <!-- Right Column: Target onboarding date & Position Level -->
-                            <td style="width: 44%; vertical-align: top; padding-left: 10pt;">
+                            <td style="width: 44%; vertical-align: top;">
                                 <table style="width: 100%;" cellspacing="0" cellpadding="0">
                                     <tr>
-                                        <td style="width: 55%; vertical-align: middle; font-size: 8.52pt;">Target onboarding date:</td>
-                                        <td style="width: 45%;"><div class="box-field" style="text-align: center;">{{ req.target_onboarding_date|date:"d.m.y"|default:req.target_onboarding_date|default:"&nbsp;"|safe }}</div></td>
+                                        <td style="height: 12pt;" colspan="2"></td>
                                     </tr>
                                     <tr>
-                                        <td style="vertical-align: middle; padding-top: 4pt; font-size: 7.85pt;">Position Level:</td>
-                                        <td style="padding-top: 4pt;"><div class="box-field" style="text-align: center;">{{ req.position_level|default:"&nbsp;"|safe }}</div></td>
+                                        <td style="width: 58%; text-align: right; vertical-align: middle; padding: 2pt 5pt 2pt 0; font-size: 8.52pt;">Target onboarding date:</td>
+                                        <td style="width: 42%; padding: 2pt 0;"><div class="box-field" style="text-align: center;">{{ req.target_onboarding_date|date:"d.m.y"|default:req.target_onboarding_date|default:"&nbsp;"|safe }}</div></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align: right; vertical-align: middle; padding: 2pt 5pt 2pt 0; font-size: 7.85pt;">Position Level:</td>
+                                        <td style="padding: 2pt 0;"><div class="box-field" style="text-align: center;">{{ req.position_level|default:"&nbsp;"|safe }}</div></td>
                                     </tr>
                                 </table>
                             </td>
@@ -261,75 +268,65 @@
                     </table>
 
                     <!-- Replacement for & Reason(s) -->
-                    <table style="width: 100%; margin-top: 2pt;" cellspacing="0" cellpadding="0">
+                    <table style="width: 100%; margin-top: 1.5pt;" cellspacing="0" cellpadding="0">
                         <tr>
-                            <td style="width: 14pt; vertical-align: middle; padding-left: 14pt;">
+                            <td style="width: 12pt;"></td>
+                            <td style="width: 13pt; vertical-align: middle; padding: 1.5pt 0;">
                                 {% if req.employment_type == 'permanent' and req.permanent_category == 'replacement' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
                             </td>
-                            <td style="width: 90pt; vertical-align: middle; font-size: 7.82pt;">
+                            <td style="width: 68pt; vertical-align: middle; padding: 1.5pt 0 1.5pt 3pt; font-size: 7.82pt;">
                                 Replacement for
                             </td>
-                            <td style="padding-right: 5pt;">
+                            <td style="padding: 1.5pt 0;">
                                 <div class="box-field">{{ req.replacement_for|default:"&nbsp;"|safe }}</div>
                             </td>
                         </tr>
                         <tr>
                             <td></td>
-                            <td style="vertical-align: middle; padding-top: 3pt; padding-left: 14pt; font-size: 7.85pt;">
+                            <td></td>
+                            <td style="vertical-align: middle; padding: 1.5pt 0 1.5pt 3pt; font-size: 7.85pt;">
                                 Reason(s):
                             </td>
-                            <td style="padding-right: 5pt; padding-top: 3pt;">
+                            <td style="padding: 1.5pt 0;">
                                 <div class="box-field">{{ req.replacement_reason|default:"&nbsp;"|safe }}</div>
                             </td>
                         </tr>
                     </table>
 
                     <!-- Contract & INTERN Row -->
-                    <table style="width: 100%; margin-top: 6pt;" cellspacing="0" cellpadding="0">
+                    <table style="width: 100%; margin-top: 5pt;" cellspacing="0" cellpadding="0">
                         <tr>
-                            <td style="width: 25%; vertical-align: middle;">
-                                <table cellspacing="0" cellpadding="0">
-                                    <tr>
-                                        <td style="width: 14pt; vertical-align: middle;">
-                                            {% if req.employment_type == 'contract' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
-                                        </td>
-                                        <td style="vertical-align: middle;"><strong style="font-size: 7.85pt;">Contract</strong></td>
-                                    </tr>
-                                </table>
+                            <td style="width: 13pt; vertical-align: middle; padding: 1.5pt 0;">
+                                {% if req.employment_type == 'contract' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
                             </td>
-                            <td style="width: 75%; vertical-align: middle;">
-                                <table cellspacing="0" cellpadding="0">
-                                    <tr>
-                                        <td style="width: 14pt; vertical-align: middle;">
-                                            {% if req.employment_type == 'intern' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
-                                        </td>
-                                        <td style="vertical-align: middle;"><strong style="font-size: 7.85pt;">INTERN</strong></td>
-                                    </tr>
-                                </table>
+                            <td style="width: 55pt; vertical-align: middle; padding: 1.5pt 0 1.5pt 3pt;"><strong style="font-size: 7.85pt;">Contract</strong></td>
+                            <td style="width: 13pt; vertical-align: middle; padding: 1.5pt 0;">
+                                {% if req.employment_type == 'intern' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
                             </td>
+                            <td style="vertical-align: middle; padding: 1.5pt 0 1.5pt 3pt;"><strong style="font-size: 7.85pt;">INTERN</strong></td>
                         </tr>
                     </table>
 
                     <!-- Full Time / Part Time Blue Box -->
                     <table class="blue-subbox" cellspacing="0" cellpadding="0">
                         <tr>
-                            <td style="padding: 2.5pt 10pt; width: 45%; vertical-align: middle;">
+                            <td style="padding: 2.5pt 8pt; width: 35%; vertical-align: middle;">
                                 <table cellspacing="0" cellpadding="0">
                                     <tr>
-                                        <td style="width: 14pt; vertical-align: middle;">
+                                        <td style="width: 13pt; vertical-align: middle;">
                                             {% if req.contract_term == 'full_time' or not req.contract_term %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
                                         </td>
-                                        <td style="vertical-align: middle; font-size: 7.85pt;">Full Time</td>
+                                        <td style="vertical-align: middle; padding-left: 3pt; font-size: 7.85pt;">Full Time</td>
                                     </tr>
                                 </table>
                             </td>
-                            <td style="padding: 2.5pt 10pt; width: 55%; vertical-align: middle;">
+                            <td style="padding: 2.5pt 8pt; width: 65%; vertical-align: middle;">
                                 <table cellspacing="0" cellpadding="0">
                                     <tr>
-                                        <td style="width: 14pt; vertical-align: middle;">
+                                        <td style="width: 13pt; vertical-align: middle;">
                                             {% if req.contract_term == 'part_time' %}{{ chk_checked_html|safe }}{% else %}{{ chk_empty_html|safe }}{% endif %}
                                         </td>
-                                        <td style="vertical-align: middle; font-size: 7.85pt;">Part Time</td>
+                                        <td style="vertical-align: middle; padding-left: 3pt; font-size: 7.85pt;">Part Time</td>
                                     </tr>
                                 </table>
                             </td>
@@ -337,28 +334,29 @@
                     </table>
 
                     <!-- Employment Period -->
-                    <table style="width: 100%; margin-top: 3pt;" cellspacing="0" cellpadding="0">
+                    <table style="width: 100%; margin-top: 2.5pt;" cellspacing="0" cellpadding="0">
                         <tr>
-                            <td style="width: 110pt; vertical-align: middle; font-size: 7.82pt;">Employment Period from:</td>
-                            <td style="width: 135pt;"><div class="box-field" style="text-align: center;">{{ req.period_from|date:"d.m.y"|default:req.period_from|default:"&nbsp;"|safe }}</div></td>
+                            <td style="width: 102pt; vertical-align: middle; font-size: 7.82pt;">Employment Period from:</td>
+                            <td style="width: 145pt; vertical-align: middle;"><div class="box-field" style="text-align: center;">{{ req.period_from|date:"d.m.y"|default:req.period_from|default:"&nbsp;"|safe }}</div></td>
                             <td style="width: 25pt; text-align: center; vertical-align: middle; font-size: 7.85pt;">To:</td>
-                            <td style="width: 135pt;"><div class="box-field" style="text-align: center;">{{ req.period_to|date:"d.m.y"|default:req.period_to|default:"&nbsp;"|safe }}</div></td>
+                            <td style="width: 125pt; vertical-align: middle;"><div class="box-field" style="text-align: center;">{{ req.period_to|date:"d.m.y"|default:req.period_to|default:"&nbsp;"|safe }}</div></td>
                             <td></td>
                         </tr>
                     </table>
 
                     {% if req.working_days_hours %}
                     <!-- Working Day & Hour (Optional) -->
-                    <table style="width: 100%; margin-top: 4pt;" cellspacing="0" cellpadding="0">
+                    <table style="width: 100%; margin-top: 3pt;" cellspacing="0" cellpadding="0">
                         <tr>
-                            <td style="width: 110pt; vertical-align: middle; font-size: 7.85pt;">Working Day & Hour:</td>
-                            <td style="width: 300pt;"><div class="box-field">{{ req.working_days_hours }}</div></td>
+                            <td style="width: 102pt; vertical-align: middle; font-size: 7.85pt;">Working Day & Hour:</td>
+                            <td style="width: 295pt; vertical-align: middle;"><div class="box-field">{{ req.working_days_hours }}</div></td>
                             <td></td>
                         </tr>
                     </table>
                     {% endif %}
-
-                </div>
+                        </td>
+                    </tr>
+                </table>
 
                 <!-- Section 4: Justification (SCALES VERTICALLY / CAN MOVE DOWN) -->
                 <div class="banner" style="border-top: none;">
