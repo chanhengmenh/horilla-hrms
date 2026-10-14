@@ -202,16 +202,16 @@
                 {% endif %}
             </div>
 
-            <!-- 6. Approvals (4-Tier Sign-off Hierarchy) -->
+            <!-- 6. Approvals (3-Tier Sign-off Hierarchy) -->
             <div class="mb-4">
                 <h5 style="font-weight: 700; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 6px;">
                     <span style="color: #e54f38;">6.</span> {% trans "Approvals & Sign-off Hierarchy" %}
                 </h5>
                 <div class="row g-3 mt-1">
-                    <!-- Tier 1: Requested by Hiring Manager -->
-                    <div class="col-md-3">
+                    <!-- Tier 1: Requested by (hiring manager) -->
+                    <div class="col-md-4">
                         <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
-                            <div class="badge bg-light text-dark mb-2">{% trans "Tier 1: Requester" %}</div>
+                            <div class="badge bg-light text-dark mb-2">{% trans "Tier 1: Requested by (Hiring Manager)" %}</div>
                             <div class="fw-bold">{{ req.requested_by }}</div>
                             <div class="small text-muted">{{ req.manager_position }}</div>
                             <div class="small text-success mt-2">
@@ -220,8 +220,8 @@
                         </div>
                     </div>
 
-                    <!-- Tier 2: Checked by HR Rep -->
-                    <div class="col-md-3">
+                    <!-- Tier 2: Checked HR Rep -->
+                    <div class="col-md-4">
                         <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
                             <div class="badge bg-light text-dark mb-2">{% trans "Tier 2: Checked HR Rep" %}</div>
                             <div class="fw-bold">{{ req.hr_reviewer|default:"Ms. Sin Thida" }}</div>
@@ -236,20 +236,10 @@
                         </div>
                     </div>
 
-                    <!-- Tier 3: HR Consultant -->
-                    <div class="col-md-3">
+                    <!-- Tier 3: Approved by CEO -->
+                    <div class="col-md-4">
                         <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
-                            <div class="badge bg-light text-dark mb-2">{% trans "Tier 3: HR Consultant" %}</div>
-                            <div class="fw-bold">{% trans "Mr. Ith Vithou" %}</div>
-                            <div class="small text-muted">{% trans "HR Consultant" %}</div>
-                            <div class="small text-muted mt-2">{% trans "Advisory Sign-off" %}</div>
-                        </div>
-                    </div>
-
-                    <!-- Tier 4: Approved by CEO -->
-                    <div class="col-md-3">
-                        <div class="p-3 h-100 text-center" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
-                            <div class="badge bg-light text-dark mb-2">{% trans "Tier 4: Approved by CEO" %}</div>
+                            <div class="badge bg-light text-dark mb-2">{% trans "Tier 3: Approved by CEO" %}</div>
                             <div class="fw-bold">{{ req.approved_by|default:"Mr. KHIEU Sarvorneat" }}</div>
                             <div class="small text-muted">{% trans "Chief Executive Officer" %}</div>
                             {% if req.approved_date %}

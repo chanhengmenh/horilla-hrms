@@ -6,6 +6,9 @@ Strictly governed by RBAC: only Executives, Department Heads, CTO, and Directors
 can originate and fill requisitions. HR and Admins audit and review.
 """
 
+import base64
+import os
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, HttpResponseForbidden
@@ -198,10 +201,24 @@ def staff_requisition_pdf(request, pk):
 
     company = requisition.company_id or Company.objects.filter(hq=True).first() or Company.objects.first()
 
+    def _read_b64(rel_path):
+        full_path = os.path.join(settings.BASE_DIR, rel_path)
+        if os.path.exists(full_path):
+            with open(full_path, "rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
+        return ""
+
+    logo_b64 = _read_b64("recruitment/static/recruitment/images/rmo_logo.jpg")
+    empty_b64 = _read_b64("recruitment/static/recruitment/images/chk_empty.png")
+    checked_b64 = _read_b64("recruitment/static/recruitment/images/chk_checked.png")
+
     context = {
         "req": requisition,
         "company": company,
         "now": timezone.now(),
+        "logo_b64": logo_b64,
+        "empty_b64": empty_b64,
+        "checked_b64": checked_b64,
     }
 
     html = render_to_string("recruitment/requisition/requisition_pdf_ticket.html", context)

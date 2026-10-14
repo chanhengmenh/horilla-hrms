@@ -5,317 +5,373 @@
     <title>Staff Requisition Form - {{ req.requisition_code }}</title>
     <style>
         @page {
-            size: a4 portrait;
-            margin: 1.2cm 1.2cm 1.2cm 1.2cm;
-            @bottom-right {
-                content: "Page " counter(page) " of " counter(pages);
-                font-size: 8pt;
-                color: #666;
-            }
+            size: letter portrait;
+            margin-top: 0.22in;
+            margin-bottom: 0.15in;
+            margin-left: 0.42in;
+            margin-right: 0.42in;
         }
         body {
             font-family: Helvetica, Arial, sans-serif;
-            font-size: 9pt;
-            color: #222;
-            line-height: 1.35;
+            font-size: 7.5pt;
+            color: #000;
+            line-height: 1.15;
+            margin: 0;
+            padding: 0;
         }
-        .header-table {
+        .main-frame {
+            border: 1.25pt solid #000;
             width: 100%;
-            border-bottom: 2px solid #1f2937;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
         }
-        .header-title {
-            font-size: 15pt;
-            font-weight: bold;
-            color: #111;
+        .banner {
+            background-color: #D0CECE;
+            border-top: 0.75pt solid #000;
+            border-bottom: 0.75pt solid #000;
             text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .form-code {
-            font-size: 8.5pt;
             font-weight: bold;
-            color: #e54f38;
-            text-align: right;
+            font-size: 7.8pt;
+            padding: 2pt 0;
         }
-        .note-box {
-            background-color: #fef2f2;
-            border-left: 3px solid #dc2626;
-            padding: 4px 8px;
-            font-size: 8pt;
-            color: #991b1b;
-            margin-bottom: 10px;
-        }
-        .section-header {
-            background-color: #f3f4f6;
-            border: 1px solid #d1d5db;
-            font-weight: bold;
-            font-size: 9pt;
-            color: #1f2937;
-            padding: 4px 6px;
-            margin-top: 8px;
-            margin-bottom: 0px;
-            text-transform: uppercase;
-        }
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 6px;
-        }
-        .data-table th, .data-table td {
-            border: 1px solid #d1d5db;
-            padding: 5px 6px;
-            font-size: 8.5pt;
-            vertical-align: top;
-        }
-        .data-table th {
-            background-color: #f9fafb;
-            font-weight: bold;
-            color: #374151;
-        }
-        .label {
-            font-weight: bold;
-            color: #4b5563;
-        }
-        .checkbox {
-            font-family: Helvetica, Arial, sans-serif;
-            font-weight: bold;
-            display: inline-block;
-            margin-right: 4px;
-        }
-        .text-box {
-            border: 1px solid #d1d5db;
-            padding: 6px;
-            min-height: 45px;
-            font-size: 8.5pt;
-            background-color: #fafafa;
-            margin-bottom: 6px;
-        }
-        .approval-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 6px;
-        }
-        .approval-table th, .approval-table td {
-            border: 1px solid #9ca3af;
-            padding: 6px;
-            font-size: 8pt;
+        .title-banner {
+            background-color: #D0CECE;
+            border-top: 1pt solid #000;
+            border-bottom: 1pt solid #000;
             text-align: center;
-        }
-        .approval-table th {
-            background-color: #f3f4f6;
             font-weight: bold;
+            font-size: 9.5pt;
+            padding: 3pt 0;
         }
-        .sig-space {
-            height: 38px;
+        .table-data {
+            width: 100%;
+        }
+        .table-data th, .table-data td {
+            border: 0.75pt solid #000;
+            padding: 2.5pt 5pt;
+            font-size: 7.3pt;
+            vertical-align: middle;
+        }
+        .table-data th {
+            font-weight: normal;
+            text-align: left;
+            background-color: #fff;
+        }
+        .val-cell {
+            font-weight: bold;
+            font-size: 7.6pt;
+            height: 12pt;
+        }
+        .approvals-frame {
+            border: 1.25pt solid #000;
+            width: 100%;
+            margin-top: 5pt;
+        }
+        .field-box {
+            border: 0.75pt solid #000;
+            height: 11pt;
+            line-height: 11pt;
+            padding: 0 3pt;
+            font-size: 7.3pt;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <!-- Header Table with Quality Code and Title -->
-    <table class="header-table">
-        <tr>
-            <td style="width: 25%; vertical-align: middle;">
-                <strong style="font-size: 11pt; color: #111;">{{ company.company|default:"HANUMAN BEVERAGES" }}</strong>
-            </td>
-            <td style="width: 50%; vertical-align: middle;" class="header-title">
-                Staff Requisition Form
-            </td>
-            <td style="width: 25%; vertical-align: middle;" class="form-code">
-                <strong>FORM: RMO-HRA-QF-001</strong><br>
-                <span style="font-size: 7.5pt; color: #555;">Ticket: {{ req.requisition_code }}</span>
-            </td>
-        </tr>
-    </table>
+    <!-- Upper Main Frame -->
+    <div class="main-frame">
+        
+        <!-- Header Logo & Requisition Code Area -->
+        <table style="width: 100%;" cellspacing="0" cellpadding="0">
+            <tr>
+                <td style="padding: 2pt 6pt; width: 60%; vertical-align: middle;">
+                    {% if logo_b64 %}
+                    <img src="data:image/jpeg;base64,{{ logo_b64 }}" width="115" />
+                    {% else %}
+                    <strong style="font-size: 14pt; color: #008751;">RMO</strong><br>
+                    <small style="font-size: 6.5pt; color: #555;">- RMO TECHNOLOGY CO., LTD -</small>
+                    {% endif %}
+                </td>
+                <td style="padding: 2pt 6pt; width: 40%; text-align: right; vertical-align: top;">
+                    <div style="font-size: 6.8pt; color: #555;">Requisition Code:</div>
+                    <div style="font-size: 8.5pt; font-weight: bold; color: #111;">{{ req.requisition_code }}</div>
+                </td>
+            </tr>
+        </table>
 
-    <!-- Mandatory Policy Notice -->
-    <div class="note-box">
-        <strong>Note:</strong> All fields are mandatory; requisition will be considered only if this form is fully completed.
+        <!-- Title Banner -->
+        <div class="title-banner">
+            Staff Requisition Form
+        </div>
+
+        <!-- Note Section -->
+        <div style="padding: 3pt 6pt; border-bottom: 0.75pt solid #000; font-size: 7.3pt;">
+            <strong>Note:</strong><br>
+            All fields are mandatory; requisition will be considered only if this form is fully completed.
+        </div>
+
+        <!-- Position Details Banner -->
+        <div class="banner">
+            Position Details
+        </div>
+
+        <!-- Position Details Table -->
+        <table class="table-data" cellspacing="0" cellpadding="0" style="border-left: none; border-right: none;">
+            <tr>
+                <th style="width: 38%; border-left: none;">* Position to be requested</th>
+                <th style="width: 18%;">* Based Location</th>
+                <th style="width: 18%;">* Function</th>
+                <th style="width: 26%; border-right: none;">* Department</th>
+            </tr>
+            <tr>
+                <td class="val-cell" style="border-left: none;">{{ req.position_title }}</td>
+                <td class="val-cell">{{ req.location }}</td>
+                <td class="val-cell">{{ req.function }}</td>
+                <td class="val-cell" style="border-right: none;">{{ req.department_id.department }}</td>
+            </tr>
+        </table>
+
+        <!-- Line Manager's Details Banner -->
+        <div class="banner" style="border-top: none;">
+            Line Manager's Details
+        </div>
+
+        <!-- Line Manager's Details Table -->
+        <table class="table-data" cellspacing="0" cellpadding="0" style="border-left: none; border-right: none;">
+            <tr>
+                <th style="width: 56%; border-left: none;">* Manager's Name</th>
+                <th style="width: 44%; border-right: none;">Position</th>
+            </tr>
+            <tr>
+                <td class="val-cell" style="border-left: none;">{{ req.requested_by.get_full_name|default:req.requested_by }}</td>
+                <td class="val-cell" style="border-right: none;">{{ req.manager_position }}</td>
+            </tr>
+        </table>
+
+        <!-- Employment Status Banner -->
+        <div class="banner" style="border-top: none;">
+            Employment Status
+        </div>
+
+        <!-- Employment Status Content -->
+        <div style="padding: 4pt 8pt; border-bottom: 0.75pt solid #000; font-size: 7.3pt;">
+            
+            <table style="width: 100%;" cellspacing="0" cellpadding="0">
+                <tr>
+                    <!-- Permanent Options (Left) -->
+                    <td style="width: 58%; vertical-align: top;">
+                        <table cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td style="width: 14pt; vertical-align: middle;">
+                                    {% if req.employment_type == 'permanent' %}
+                                        {% if checked_b64 %}<img src="data:image/png;base64,{{ checked_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[X]{% endif %}
+                                    {% else %}
+                                        {% if empty_b64 %}<img src="data:image/png;base64,{{ empty_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[&nbsp;]{% endif %}
+                                    {% endif %}
+                                </td>
+                                <td style="font-weight: bold; vertical-align: middle;">PERMANENT</td>
+                            </tr>
+                        </table>
+
+                        <table cellspacing="0" cellpadding="0" style="margin-left: 14pt; margin-top: 2pt;">
+                            <tr>
+                                <td style="width: 14pt; vertical-align: middle;">
+                                    {% if req.employment_type == 'permanent' and req.permanent_category == 'budgeted' %}
+                                        {% if checked_b64 %}<img src="data:image/png;base64,{{ checked_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[X]{% endif %}
+                                    {% else %}
+                                        {% if empty_b64 %}<img src="data:image/png;base64,{{ empty_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[&nbsp;]{% endif %}
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle;">Additional Headcount Budgetted</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 14pt; vertical-align: middle; padding-top: 2pt;">
+                                    {% if req.employment_type == 'permanent' and req.permanent_category == 'non_budgeted' %}
+                                        {% if checked_b64 %}<img src="data:image/png;base64,{{ checked_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[X]{% endif %}
+                                    {% else %}
+                                        {% if empty_b64 %}<img src="data:image/png;base64,{{ empty_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[&nbsp;]{% endif %}
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle; padding-top: 2pt;">Additional Headcount - Non-Budgetted</td>
+                            </tr>
+                        </table>
+
+                        <table cellspacing="0" cellpadding="0" style="margin-left: 14pt; margin-top: 2pt;">
+                            <tr>
+                                <td style="width: 14pt; vertical-align: middle;">
+                                    {% if req.employment_type == 'permanent' and req.permanent_category == 'replacement' %}
+                                        {% if checked_b64 %}<img src="data:image/png;base64,{{ checked_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[X]{% endif %}
+                                    {% else %}
+                                        {% if empty_b64 %}<img src="data:image/png;base64,{{ empty_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[&nbsp;]{% endif %}
+                                    {% endif %}
+                                </td>
+                                <td style="width: 80pt; vertical-align: middle;">Replacement for</td>
+                                <td style="width: 125pt;"><div class="field-box">{{ req.replacement_for|default:"" }}</div></td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td style="vertical-align: middle; padding-top: 2pt;">Reason(s):</td>
+                                <td style="padding-top: 2pt;"><div class="field-box">{{ req.replacement_reason|default:"" }}</div></td>
+                            </tr>
+                        </table>
+                    </td>
+
+                    <!-- Right Column (Dates & Levels) -->
+                    <td style="width: 42%; vertical-align: top; padding-left: 8pt;">
+                        <table cellspacing="0" cellpadding="0" style="margin-top: 10pt;">
+                            <tr>
+                                <td style="width: 95pt; vertical-align: middle;">Target onboarding date:</td>
+                                <td style="width: 60pt;"><div class="field-box" style="text-align: center;">{{ req.target_onboarding_date|date:"d.m.y"|default:"" }}</div></td>
+                            </tr>
+                            <tr>
+                                <td style="vertical-align: middle; padding-top: 3pt;">Position Level:</td>
+                                <td style="padding-top: 3pt;"><div class="field-box" style="text-align: center;">{{ req.position_level|default:"" }}</div></td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Contract / Intern Row -->
+            <table cellspacing="0" cellpadding="0" style="margin-top: 3pt;">
+                <tr>
+                    <td style="width: 14pt; vertical-align: middle;">
+                        {% if req.employment_type == 'contract' %}
+                            {% if checked_b64 %}<img src="data:image/png;base64,{{ checked_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[X]{% endif %}
+                        {% else %}
+                            {% if empty_b64 %}<img src="data:image/png;base64,{{ empty_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[&nbsp;]{% endif %}
+                        {% endif %}
+                    </td>
+                    <td style="width: 55pt; vertical-align: middle;">Contract</td>
+                    <td style="width: 14pt; vertical-align: middle;">
+                        {% if req.employment_type == 'intern' %}
+                            {% if checked_b64 %}<img src="data:image/png;base64,{{ checked_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[X]{% endif %}
+                        {% else %}
+                            {% if empty_b64 %}<img src="data:image/png;base64,{{ empty_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[&nbsp;]{% endif %}
+                        {% endif %}
+                    </td>
+                    <td style="vertical-align: middle;">INTERN</td>
+                </tr>
+            </table>
+
+            <!-- Full Time / Part Time Sub-Box -->
+            <table cellspacing="0" cellpadding="0" style="width: 96%; border: 0.75pt solid #41719c; margin-top: 2pt; margin-bottom: 2pt;">
+                <tr>
+                    <td style="padding: 2pt 5pt; width: 35%;">
+                        <table cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td style="width: 14pt; vertical-align: middle;">
+                                    {% if req.contract_term == 'full_time' %}
+                                        {% if checked_b64 %}<img src="data:image/png;base64,{{ checked_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[X]{% endif %}
+                                    {% else %}
+                                        {% if empty_b64 %}<img src="data:image/png;base64,{{ empty_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[&nbsp;]{% endif %}
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle;">Full Time</td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td style="padding: 2pt 5pt; width: 65%;">
+                        <table cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td style="width: 14pt; vertical-align: middle;">
+                                    {% if req.contract_term == 'part_time' %}
+                                        {% if checked_b64 %}<img src="data:image/png;base64,{{ checked_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[X]{% endif %}
+                                    {% else %}
+                                        {% if empty_b64 %}<img src="data:image/png;base64,{{ empty_b64 }}" width="10" height="7" style="vertical-align: middle;" />{% else %}[&nbsp;]{% endif %}
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle;">Part Time</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Employment Period -->
+            <table cellspacing="0" cellpadding="0" style="margin-top: 2pt;">
+                <tr>
+                    <td style="width: 95pt; vertical-align: middle;">Employment Period from:</td>
+                    <td style="width: 70pt;"><div class="field-box" style="text-align: center;">{{ req.period_from|date:"d.m.y"|default:"" }}</div></td>
+                    <td style="width: 20pt; text-align: center; vertical-align: middle;">To:</td>
+                    <td style="width: 70pt;"><div class="field-box" style="text-align: center;">{{ req.period_to|date:"d.m.y"|default:"" }}</div></td>
+                </tr>
+            </table>
+
+            <!-- Working Day & Hour -->
+            <table cellspacing="0" cellpadding="0" style="margin-top: 2pt;">
+                <tr>
+                    <td style="width: 95pt; vertical-align: middle;">Working Day & Hour:</td>
+                    <td style="width: 210pt;"><div class="field-box">{{ req.working_days_hours|default:"" }}</div></td>
+                </tr>
+            </table>
+
+        </div>
+
+        <!-- Justification Banner -->
+        <div class="banner" style="border-top: none;">
+            Justification (Why is this position needed?)
+        </div>
+        <div style="padding: 3pt 6pt; min-height: 22pt; border-bottom: 0.75pt solid #000; font-size: 7.3pt;">
+            {{ req.justification|linebreaksbr }}
+        </div>
+
+        <!-- Position Requirements Banner -->
+        <div class="banner" style="border-top: none;">
+            Position Requirements (refer to JD attached)
+        </div>
+        <div style="padding: 3pt 6pt; min-height: 32pt; font-size: 7.3pt;">
+            {{ req.position_requirements|linebreaksbr }}
+            {% if req.job_description_file %}
+            <br><small style="color: #666;">(Job Description attached: {{ req.job_description_file.name }})</small>
+            {% endif %}
+        </div>
+
     </div>
 
-    <!-- Section 1: Position Details -->
-    <div class="section-header">1. Position Details</div>
-    <table class="data-table">
-        <tr>
-            <th style="width: 35%;">* Position to be requested</th>
-            <th style="width: 20%;">* Based Location</th>
-            <th style="width: 20%;">* Function</th>
-            <th style="width: 25%;">* Department</th>
-        </tr>
-        <tr>
-            <td><strong>{{ req.position_title }}</strong></td>
-            <td>{{ req.location }}</td>
-            <td>{{ req.function }}</td>
-            <td><strong>{{ req.department_id.department }}</strong></td>
-        </tr>
-        <tr>
-            <td colspan="2">
-                <span class="label">Headcount Requested:</span> <strong>{{ req.headcount }}</strong>
-            </td>
-            <td colspan="2">
-                <span class="label">Job Position Linkage:</span> {{ req.job_position_id.job_position|default:"New Position Title" }}
-            </td>
-        </tr>
-    </table>
-
-    <!-- Section 2: Line Manager's Details -->
-    <div class="section-header">2. Line Manager's Details (Hiring Manager)</div>
-    <table class="data-table">
-        <tr>
-            <th style="width: 40%;">* Manager's Name</th>
-            <th style="width: 35%;">Position / Title</th>
-            <th style="width: 25%;">Date Requested</th>
-        </tr>
-        <tr>
-            <td><strong>{{ req.requested_by }}</strong></td>
-            <td>{{ req.manager_position }}</td>
-            <td>{{ req.requested_date|date:"d-M-Y" }}</td>
-        </tr>
-    </table>
-
-    <!-- Section 3: Employment Status -->
-    <div class="section-header">3. Employment Status</div>
-    <table class="data-table">
-        <tr>
-            <td style="width: 50%; vertical-align: top;">
-                <strong>PERMANENT:</strong><br><br>
-                {% if req.employment_type == 'permanent' and req.permanent_category == 'budgeted' %}
-                    [ X ] <strong>Additional Headcount Budgeted</strong>
-                {% else %}
-                    [ &nbsp; ] Additional Headcount Budgeted
-                {% endif %}<br><br>
-
-                {% if req.employment_type == 'permanent' and req.permanent_category == 'non_budgeted' %}
-                    [ X ] <strong>Additional Headcount - Non-Budgeted</strong>
-                {% else %}
-                    [ &nbsp; ] Additional Headcount - Non-Budgeted
-                {% endif %}<br><br>
-
-                {% if req.employment_type == 'permanent' and req.permanent_category == 'replacement' %}
-                    [ X ] <strong>Replacement for:</strong> <u>{{ req.replacement_for|default:"____________________" }}</u><br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Reason(s): <i>{{ req.replacement_reason|default:"Resignation / Transfer" }}</i>
-                {% else %}
-                    [ &nbsp; ] Replacement for: ____________________________<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Reason(s): __________________________________
-                {% endif %}
-            </td>
-            <td style="width: 50%; vertical-align: top;">
-                <strong>CONTRACT / INTERN:</strong><br><br>
-                {% if req.employment_type == 'contract' %}
-                    [ X ] Contract &nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] Intern
-                {% elif req.employment_type == 'intern' %}
-                    [ &nbsp; ] Contract &nbsp;&nbsp;&nbsp;&nbsp; [ X ] Intern
-                {% else %}
-                    [ &nbsp; ] Contract &nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] Intern
-                {% endif %}<br><br>
-
-                {% if req.contract_term == 'full_time' %}
-                    [ X ] Full Time &nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] Part Time
-                {% elif req.contract_term == 'part_time' %}
-                    [ &nbsp; ] Full Time &nbsp;&nbsp;&nbsp;&nbsp; [ X ] Part Time
-                {% else %}
-                    [ &nbsp; ] Full Time &nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] Part Time
-                {% endif %}<br><br>
-
-                <span class="label">Period:</span> From <u>{{ req.period_from|date:"d-M-Y"|default:"___/___/______" }}</u> To <u>{{ req.period_to|date:"d-M-Y"|default:"___/___/______" }}</u><br>
-                <span class="label">Working Day & Hour:</span> <u>{{ req.working_days_hours|default:"____________________" }}</u>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="2">
-                <span class="label">Target Onboarding Date:</span> <strong>{{ req.target_onboarding_date|date:"d-M-Y"|default:"ASAP" }}</strong>
-                &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;
-                <span class="label">Position Level:</span> <strong>{{ req.position_level|default:"Standard" }}</strong>
-            </td>
-        </tr>
-    </table>
-
-    <!-- Section 4: Justification -->
-    <div class="section-header">4. Justification (Why is this position needed?)</div>
-    <div class="text-box">
-        {{ req.justification|linebreaksbr }}
+    <!-- Approvals Frame -->
+    <div class="approvals-frame">
+        <div class="banner" style="border-top: none;">
+            Approvals
+        </div>
+        <table style="width: 100%;" cellspacing="0" cellpadding="0">
+            <tr>
+                <td style="width: 33.3%; padding: 4pt 8pt; vertical-align: top; font-size: 7.3pt;">
+                    <strong>Requested by (hiring manager)</strong>
+                    <div style="height: 22pt; padding-top: 5pt; font-style: italic;">
+                        {{ req.requested_by.get_full_name|default:req.requested_by }}
+                    </div>
+                    <div>Date: &nbsp; {{ req.requested_date|date:"d.m.y"|default:"" }}</div>
+                </td>
+                <td style="width: 33.3%; padding: 4pt 8pt; vertical-align: top; font-size: 7.3pt;">
+                    <strong>Checked HR Rep</strong>
+                    <div style="height: 22pt; padding-top: 5pt; font-style: italic;">
+                        {% if req.hr_reviewed_date %}
+                            {{ req.hr_reviewer.get_full_name|default:req.hr_reviewer|default:"Sin Thida" }}
+                        {% endif %}
+                    </div>
+                    <div>Date: &nbsp; {{ req.hr_reviewed_date|date:"d.m.y"|default:"" }}</div>
+                </td>
+                <td style="width: 33.4%; padding: 4pt 8pt; vertical-align: top; font-size: 7.3pt;">
+                    <strong>Approved by CEO</strong>
+                    <div style="height: 22pt; padding-top: 5pt; font-style: italic;">
+                        {% if req.status == 'approved' and req.approved_date %}
+                            {{ req.approved_by.get_full_name|default:req.approved_by|default:"KHIEU Sarvorneat" }}
+                        {% endif %}
+                    </div>
+                    <div>Date: &nbsp; {{ req.approved_date|date:"d.m.y"|default:"" }}</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <!-- Section 5: Position Requirements -->
-    <div class="section-header">5. Position Requirements (refer to JD attached)</div>
-    <div class="text-box">
-        {{ req.position_requirements|linebreaksbr }}
-        {% if req.job_description_file %}
-        <br><br><small style="color: #666;">(Detailed Job Description document is attached with this requisition)</small>
-        {% endif %}
-    </div>
-
-    <!-- Section 6: Approvals Matrix -->
-    <div class="section-header">6. Approvals (Official Sign-off Hierarchy)</div>
-    <table class="approval-table">
+    <!-- Footer -->
+    <table style="width: 100%; margin-top: 2pt;" cellspacing="0" cellpadding="0">
         <tr>
-            <th style="width: 30%;">Requested by (Hiring Manager)</th>
-            <th style="width: 35%;">Checked HR Rep</th>
-            <th style="width: 35%;">HR Consultant</th>
-        </tr>
-        <tr>
-            <td class="sig-space">
-                <i>{{ req.requested_by }}</i>
-            </td>
-            <td class="sig-space">
-                {% if req.hr_reviewed_date %}
-                <i>{{ req.hr_reviewer|default:"Ms. Sin Thida" }}</i>
-                {% else %}
-                &nbsp;
-                {% endif %}
-            </td>
-            <td class="sig-space">
-                &nbsp;
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <strong>{{ req.requested_by }}</strong><br>
-                {{ req.manager_position|default:"Head of Department" }}<br>
-                Date: {{ req.requested_date|date:"d-M-Y" }}
-            </td>
-            <td>
-                <strong>Ms. Sin Thida</strong><br>
-                HR & Admin Manager<br>
-                Date: {{ req.hr_reviewed_date|date:"d-M-Y"|default:"____/____/________" }}
-            </td>
-            <td>
-                <strong>Mr. Ith Vithou</strong><br>
-                HR Consultant<br>
-                Date: ____/____/________
-            </td>
-        </tr>
-    </table>
-
-    <table class="approval-table" style="margin-top: 6px;">
-        <tr>
-            <th style="width: 50%;">Approved by CEO</th>
-            <th style="width: 50%;">Approved by Founder and Chairwoman</th>
-        </tr>
-        <tr>
-            <td class="sig-space">
-                {% if req.status == 'approved' %}
-                <i>{{ req.approved_by|default:"Mr. KHIEU Sarvorneat" }}</i>
-                {% else %}
-                &nbsp;
-                {% endif %}
-            </td>
-            <td class="sig-space">
-                &nbsp;
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <strong>Mr. KHIEU Sarvorneat</strong><br>
-                Chief Executive Officer<br>
-                Date: {{ req.approved_date|date:"d-M-Y"|default:"____/____/________" }}
-            </td>
-            <td>
-                <strong>Madam. KHIEU Sarsileap</strong><br>
-                Founder and Chairwoman<br>
-                Date: ____/____/________
+            <td style="width: 50%;"></td>
+            <td style="width: 50%; text-align: right; font-size: 6.8pt; line-height: 1.15; color: #000;">
+                RMO-HRA-QF-001<br>
+                Revision 001<br>
+                01.06.24
             </td>
         </tr>
     </table>
