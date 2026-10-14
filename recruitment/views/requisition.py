@@ -194,7 +194,7 @@ def staff_requisition_pdf(request, pk):
     """
     requisition = get_object_or_404(
         StaffRequisition.objects.select_related(
-            "department_id", "job_position_id", "requested_by", "company_id"
+            "department_id", "job_position_id", "requested_by", "company_id", "hr_reviewer", "approved_by"
         ),
         pk=pk,
     )
