@@ -4,44 +4,43 @@
 <h3 class="sr-inspector__title">{{ report_name }}</h3>
 <p class="sr-inspector__desc">{{ report_description }}</p>
 
-<div class="sr-inspector__actions flex flex-col gap-2 mb-3">
+<div class="sr-inspector__actions">
+    <button
+        type="button"
+        class="oh-btn oh-btn--secondary sr-inspector__run"
+        data-toggle="oh-modal-toggle"
+        data-target="#genericModal"
+        hx-get="{{ print_url }}"
+        hx-target="#genericModalBody"
+    >
+        {% trans "Run now" %}
+    </button>
+    {% if slug == "staff-requisition-summary" %}
     <a
         href="{{ detail_url }}"
-        class="oh-btn oh-btn--primary w-full flex items-center justify-center gap-2 sr-inspector__view py-2"
-        style="text-decoration: none;"
+        class="oh-btn oh-btn--primary"
+        style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px;"
+        title="{% trans 'View interactive summary dashboard' %}"
     >
-        <ion-icon name="stats-chart-outline" style="font-size: 16px;"></ion-icon>
-        <span class="font-semibold">{% trans "View Report" %}</span>
+        <ion-icon name="stats-chart-outline"></ion-icon>
+        {% trans "View Report" %}
     </a>
-    <div class="flex gap-2 w-full">
-        <button
-            type="button"
-            class="oh-btn oh-btn--secondary flex-1 sr-inspector__run flex items-center justify-center gap-1"
-            data-toggle="oh-modal-toggle"
-            data-target="#genericModal"
-            hx-get="{{ print_url }}"
-            hx-target="#genericModalBody"
-        >
-            <ion-icon name="download-outline"></ion-icon>
-            {% trans "Export" %}
-        </button>
-        {% if can_subscribe %}
-        <button
-            type="button"
-            class="oh-btn oh-btn--secondary-outline flex-1 flex items-center justify-center gap-1"
-            data-toggle="oh-modal-toggle"
-            data-target="#genericModal"
-            hx-get="{{ subscribe_url }}"
-            hx-target="#genericModalBody"
-        >
-            <ion-icon name="notifications-outline"></ion-icon>
-            {% trans "Subscribe" %}
-        </button>
-        {% endif %}
-    </div>
+    {% endif %}
+    {% if can_subscribe %}
+    <button
+        type="button"
+        class="oh-btn oh-btn--secondary-outline"
+        data-toggle="oh-modal-toggle"
+        data-target="#genericModal"
+        hx-get="{{ subscribe_url }}"
+        hx-target="#genericModalBody"
+    >
+        {% trans "Subscribe" %}
+    </button>
+    {% endif %}
 </div>
 
-{% if kpis %}
+{% if slug == "staff-requisition-summary" and kpis %}
 <div class="sr-inspector__section-title">{% trans "Live KPI Summary" %}</div>
 <div class="grid grid-cols-2 gap-2 mb-3">
     {% for kpi in kpis %}
@@ -58,7 +57,7 @@
 <div class="sr-inspector__grid">
     <div>
         <div class="sr-inspector__label">{% trans "Format" %}</div>
-        <div class="sr-inspector__value">{% trans "PDF · Excel · Web" %}</div>
+        <div class="sr-inspector__value">{% if slug == "staff-requisition-summary" %}{% trans "PDF · Excel · Web" %}{% else %}{% trans "PDF · Excel" %}{% endif %}</div>
     </div>
     <div>
         <div class="sr-inspector__label">{% trans "Your subscription" %}</div>

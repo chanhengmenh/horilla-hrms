@@ -333,12 +333,13 @@ def standard_report_inspector(request, slug):
     )
 
     kpis = []
-    try:
-        filters = filters_from_request(request)
-        kpi_data = run_report_kpis(slug, filters)
-        kpis = (kpi_data.get("kpis") or [])[:4]
-    except Exception:
-        kpis = []
+    if slug == "staff-requisition-summary":
+        try:
+            filters = filters_from_request(request)
+            kpi_data = run_report_kpis(slug, filters)
+            kpis = (kpi_data.get("kpis") or [])[:4]
+        except Exception:
+            kpis = []
 
     return render(
         request,

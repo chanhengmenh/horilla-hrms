@@ -86,34 +86,36 @@ def test_breadcrumbs_scenario():
 def test_standard_report_views():
     print("\n--- Testing Standard Report Views & Inspector ---")
 
-    # 1. Catalog view
+    # 1. Catalog view: original listing preserved (no extra links or view buttons on rows)
     req_catalog = make_request("/report/standard/")
     resp_catalog = standard_report_catalog(req_catalog)
     content_cat = resp_catalog.content.decode("utf-8")
     assert resp_catalog.status_code == 200
     assert "Staff Requisition Summary" in content_cat
-    assert "data-detail-url=" in content_cat
-    assert "/report/standard/staff-requisition-summary/" in content_cat
-    print("Catalog view: HTTP 200, contains Staff Requisition Summary and direct detail links.")
+    assert "sr-row__title-link" not in content_cat, "Report titles must remain original text without links"
+    assert "data-detail-url=" not in content_cat, "Row markup must remain in original form"
+    print("Catalog view: HTTP 200, listing preserved in original form (no extra row links).")
 
-    # 2. Inspector fragment
+    # 2. Inspector fragment for staff-requisition-summary: has View Report button & KPIs
     req_insp = make_request("/report/standard/staff-requisition-summary/inspector/")
     resp_insp = standard_report_inspector(req_insp, "staff-requisition-summary")
     content_insp = resp_insp.content.decode("utf-8")
     assert resp_insp.status_code == 200
     assert "View Report" in content_insp
     assert "/report/standard/staff-requisition-summary/" in content_insp
-    assert "Live KPI Summary" in content_insp or "Format" in content_insp
-    print("Inspector view: HTTP 200, contains 'View Report' button, detail URL, and KPI summary.")
+    assert "Live KPI Summary" in content_insp
+    print("Inspector view (Staff Requisition): HTTP 200, has 'View Report' button and Live KPI Summary.")
 
-    # 3. Print/Export Modal
-    req_print = make_request("/report/standard/staff-requisition-summary/print-filters/")
-    resp_print = standard_report_print_filters(req_print, "staff-requisition-summary")
-    content_print = resp_print.content.decode("utf-8")
-    assert resp_print.status_code == 200
-    assert "Open Full Report" in content_print
-    assert "/report/standard/staff-requisition-summary/" in content_print
-    print("Print modal: HTTP 200, contains 'Open Full Report' link.")
+    # 3. Inspector fragment for other reports: strictly original form (NO View Report button, NO KPI summary)
+    req_other = make_request("/report/standard/workforce-composition/inspector/")
+    resp_other = standard_report_inspector(req_other, "workforce-composition")
+    content_other = resp_other.content.decode("utf-8")
+    assert resp_other.status_code == 200
+    assert "View Report" not in content_other, "Other reports must NOT have View Report button"
+    assert "Live KPI Summary" not in content_other, "Other reports must NOT have Live KPI Summary"
+    assert "Run now" in content_other
+    assert "PDF · Excel" in content_other
+    print("Inspector view (Other reports): HTTP 200, strictly in original form (no View Report button).")
 
     # 4. Detail view
     req_detail = make_request("/report/standard/staff-requisition-summary/")

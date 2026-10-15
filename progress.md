@@ -349,17 +349,16 @@ Verified 5/5 test suites passing:
   - **Human-Readable Breadcrumb Mappings:** Added proper title mappings in `BREADCRUMB_URL_NAMES` for `staff-requisitions` ("Staff Requisitions"), `staff-requisition-create` ("Create Staff Requisition"), `staff-requisition-summary` ("Staff Requisition Summary"), `standard` ("Standard Reports"), and `report` ("Reports"), plus dynamic fallback to standard report definition titles (`rep_def.name`).
   - **Registered `report/` Redirect:** Added `path("report/", _section_redirect("standard-report-catalog"))` making `Reports` breadcrumbs clickable.
 
-#### 7.10.2 Standard Reports Direct "View Report" & KPI Preview
-- **Inspector Panel Overhaul ([`standard_report_inspector.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla_theme/templates/report/standard_report_inspector.html)):**
-  - Added prominent **`View Report`** primary action button (`oh-btn oh-btn--primary`) pointing to `/report/standard/<slug>/` so users in `Reports > Standard Reports` can immediately view the live report interface (KPIs, ApexCharts, graphs, audit tables) with 1 click.
-  - Added **`Live KPI Summary`** preview cards directly within the inspector panel for fast glanceable headcount/status metrics.
-  - Preserved Export / Print (`oh-btn oh-btn--secondary`) and Subscribe options.
-- **Catalog Row & Card Navigation ([`standard_catalog.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla_theme/templates/report/standard_catalog.html)):**
-  - Made report titles clickable links navigating directly to the live report.
-  - Added dedicated **View Report** action button (`stats-chart-outline`) in the row actions.
-  - Added double-click listener on rows for rapid keyboard/mouse navigation.
-- **Print / Export Modal Integration ([`standard_report_print_modal.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla_theme/templates/report/standard_report_print_modal.html)):**
-  - Added an **`Open Full Report`** button in the dialog footer so users can jump straight to the live report from the export dialog.
+#### 7.10.2 Staff Requisition Inspector "View Report" & Original Listing Preservation
+- **Original Report Listing Preserved ([`standard_catalog.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla_theme/templates/report/standard_catalog.html)):**
+  - Maintained 100% original form of the standard reports catalog listing: plain text titles, original action buttons (Favorite & Subscribe), no extra icons or double-click redirects.
+  - Kept export dialog ([`standard_report_print_modal.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla_theme/templates/report/standard_report_print_modal.html)) in its original form.
+- **Selective Inspector Panel Action ([`standard_report_inspector.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla_theme/templates/report/standard_report_inspector.html)):**
+  - **Staff Requisition Summary (`slug == "staff-requisition-summary"`):**
+    - Added **`View Report`** primary action button (`oh-btn oh-btn--primary`) placed directly next to `Run now` on the inspector card after clicking the report row.
+    - Added **`Live KPI Summary`** preview cards directly within the inspector card (Total Requisitions, Headcount, Budgeted, Approved).
+  - **All Other Standard Reports:**
+    - Kept 100% identical to their original form (strictly `Run now` and `Subscribe` buttons; no `View Report` button; standard format `PDF · Excel`).
 - **Verification ([`test_report_inspector_and_crumbs.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/test_report_inspector_and_crumbs.py)):**
-  - Verified 100% pass across breadcrumbs isolation, catalog links, inspector view, and detail dashboards.
+  - Verified 100% pass: original catalog listing preserved, `staff-requisition-summary` displays View Report and KPIs, other reports retain original layout, and breadcrumb isolation prevents cross-module leakage.
 
