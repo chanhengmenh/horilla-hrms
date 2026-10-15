@@ -177,9 +177,6 @@
         <div>
             <h1 class="oh-title req-title mb-1" style="font-size: 1.5rem;">
                 {% trans "Staff Requisitions" %}
-                <span class="badge" style="background-color: rgba(107, 114, 128, 0.15); color: inherit; font-size: 0.75rem; border: 1px solid rgba(107, 114, 128, 0.3); padding: 3px 8px; border-radius: 4px; vertical-align: middle; margin-left: 8px;">
-                    RMO-HRA-QF-001
-                </span>
             </h1>
             <p class="req-text-muted" style="margin: 0; font-size: 0.875rem;">
                 {% trans "Executive headcount requests, approval workflow, and official ticket generation." %}
@@ -231,11 +228,10 @@
                     <input type="text"
                            name="search"
                            id="requisitionSearchInput"
-                           value="{{ request.GET.search }}"
+                           value="{{ request.GET.search|default:'' }}"
                            class="oh-input w-100"
                            style="padding-left: 38px; padding-right: 32px;"
                            placeholder="{% trans 'Search position title, requisition code, manager...' %}"
-                           hx-trigger="keyup changed delay:300ms, search"
                            oninput="handleSearchAutoFilter(this)"
                            autocomplete="off" />
                     <a href="javascript:void(0)"
@@ -300,7 +296,8 @@
                 </thead>
                 <tbody>
                     {% for req in requisitions %}
-                    <tr>
+                    <tr class="requisition-row"
+                        data-search="{{ req.position_title|lower }} {{ req.requisition_code|lower }} {{ req.department_id.department|lower }} {{ req.location|lower }} {{ req.function|lower }} {{ req.requested_by|lower }} {{ req.manager_name|lower }} {{ req.manager_position|lower }} {{ req.get_employment_type_display|lower }} {{ req.get_status_display|lower }}">
                         <td>
                             <a href="{% url 'staff-requisition-detail' req.id %}" class="req-code-link">
                                 {{ req.requisition_code }}
@@ -363,7 +360,7 @@
                         </td>
                         <td style="text-align: right;">
                             <div class="d-inline-flex gap-1">
-                                <a href="{% url 'staff-requisition-pdf' req.id %}" class="oh-btn oh-btn--small oh-btn--secondary" title="{% trans 'Download PDF Ticket (RMO-HRA-QF-001)' %}">
+                                <a href="{% url 'staff-requisition-pdf' req.id %}" class="oh-btn oh-btn--small oh-btn--secondary" title="{% trans 'Download PDF Ticket' %}">
                                     <ion-icon name="document-text-outline" class="me-1"></ion-icon> {% trans "PDF Ticket" %}
                                 </a>
                                 <a href="{% url 'staff-requisition-detail' req.id %}" class="oh-btn oh-btn--small oh-btn--light" title="{% trans 'View details' %}">
@@ -373,6 +370,15 @@
                         </td>
                     </tr>
                     {% endfor %}
+                    <tr id="clientNoMatchRow" style="display: none;">
+                        <td colspan="9" class="text-center py-5">
+                            <ion-icon name="search-outline" style="font-size: 2.2rem; color: #9ca3af; margin-bottom: 8px;"></ion-icon>
+                            <div style="font-weight: 600; font-size: 0.95rem; color: #4b5563;">{% trans "No matching requisitions found" %}</div>
+                            <div class="text-muted" style="font-size: 0.8rem; margin-top: 4px;">
+                                {% trans "No requisitions match your search criteria." %}
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -384,7 +390,7 @@
                 {% if request.GET.search or request.GET.status or request.GET.department_id %}
                     {% trans "No requisitions matched your filter criteria. Try adjusting or clearing your search." %}
                 {% elif is_executive %}
-                    {% trans "No headcount requests have been submitted yet. Click 'New Requisition' to fill out the RMO-HRA-QF-001 form." %}
+                    {% trans "No headcount requests have been submitted yet. Click 'New Requisition' to submit a staff requisition." %}
                 {% else %}
                     {% trans "No staff requisitions are currently pending review or audit." %}
                 {% endif %}
@@ -406,25 +412,65 @@
 
 <script>
 function triggerFilterSubmit(el) {
-    var form = el.form || document.getElementById('requisitionFilterForm');
+    var form = (el && el.form) || document.getElementById('requisitionFilterForm');
     if (!form) return;
-    if (window.htmx) {
+    if (form.requestSubmit) {
+        form.requestSubmit();
+    } else if (window.htmx) {
         htmx.trigger(form, 'submit');
     } else {
         form.submit();
     }
 }
 
+function filterRequisitionsLive(val) {
+    var raw = (val || '').trim().toLowerCase();
+    var rows = document.querySelectorAll('#requisitionTableContainer tbody tr.requisition-row');
+    var noMatchRow = document.getElementById('clientNoMatchRow');
+    if (!rows || rows.length === 0) return;
+
+    var tokens = raw.split(/\s+/).filter(Boolean);
+    var visibleCount = 0;
+
+    rows.forEach(function(row) {
+        if (tokens.length === 0) {
+            row.style.display = '';
+            visibleCount++;
+            return;
+        }
+        var searchData = (row.getAttribute('data-search') || row.innerText || '').toLowerCase();
+        var matches = tokens.every(function(token) {
+            return searchData.indexOf(token) !== -1;
+        });
+
+        if (matches) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    if (noMatchRow) {
+        noMatchRow.style.display = (visibleCount === 0 && tokens.length > 0) ? '' : 'none';
+    }
+}
+
 var reqSearchDebounceTimer = null;
 function handleSearchAutoFilter(inputEl) {
+    var val = inputEl.value;
     var clearBtn = document.getElementById('searchClearBtn');
     if (clearBtn) {
-        clearBtn.style.display = inputEl.value ? 'block' : 'none';
+        clearBtn.style.display = val ? 'block' : 'none';
     }
+    // 1. Instant 0ms client-side row filtering on every single keypress
+    filterRequisitionsLive(val);
+
+    // 2. Debounced server fetch via HTMX
     clearTimeout(reqSearchDebounceTimer);
     reqSearchDebounceTimer = setTimeout(function() {
         triggerFilterSubmit(inputEl);
-    }, 320);
+    }, 300);
 }
 
 function clearSearchInput() {
@@ -433,9 +479,24 @@ function clearSearchInput() {
         input.value = '';
         var clearBtn = document.getElementById('searchClearBtn');
         if (clearBtn) clearBtn.style.display = 'none';
+        filterRequisitionsLive('');
         triggerFilterSubmit(input);
         input.focus();
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var input = document.getElementById('requisitionSearchInput');
+    if (input && input.value) {
+        filterRequisitionsLive(input.value);
+    }
+});
+
+document.addEventListener('htmx:afterSettle', function(evt) {
+    var input = document.getElementById('requisitionSearchInput');
+    if (input && input.value) {
+        filterRequisitionsLive(input.value);
+    }
+});
 </script>
 {% endblock %}

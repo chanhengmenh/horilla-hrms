@@ -362,3 +362,50 @@ Verified 5/5 test suites passing:
 - **Verification ([`test_report_inspector_and_crumbs.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/test_report_inspector_and_crumbs.py)):**
   - Verified 100% pass: original catalog listing preserved, `staff-requisition-summary` displays View Report and KPIs, other reports retain original layout, and breadcrumb isolation prevents cross-module leakage.
 
+### 7.11 Quality Code Removal & Instant Multi-Character Live Search
+
+#### 7.11.1 Complete Removal of "RMO-HRA-QF-001" Display
+- **Rationale:** Form reference code `RMO-HRA-QF-001` was used as the specification reference during implementation. Now that implementation is complete, it is completely removed from all user-facing interfaces and generated documents.
+- **Affected Templates & Files Updated:**
+  - [`recruitment/templates/recruitment/requisition/requisition_list.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_list.html):
+    - Removed `RMO-HRA-QF-001` badge from next to the `Staff Requisitions` heading.
+    - Updated PDF download action button tooltip: removed code reference.
+    - Updated empty-state description: removed reference to the form code.
+  - [`recruitment/templates/recruitment/requisition/requisition_detail.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_detail.html):
+    - Replaced `FORM RMO-HRA-QF-001` badge with clean `Staff Requisition` badge.
+    - Removed form code from official PDF download action button.
+  - [`recruitment/templates/recruitment/requisition/requisition_form.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_form.html):
+    - Replaced `FORM RMO-HRA-QF-001` badge with clean `Staff Requisition` badge.
+  - [`recruitment/templates/recruitment/requisition/requisition_pdf_ticket.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_pdf_ticket.html):
+    - Removed `RMO-HRA-QF-001` from the quality form footer; preserves clean revision and date metadata.
+  - Cleaned up internal docstrings, models (`FORM_CODE = "STAFF-REQ"`), forms, and route comments.
+
+#### 7.11.2 Instant 0ms Multi-Character Live Search
+- **Client-Side Instant Row Filtering (0ms Latency):**
+  - Added `filterRequisitionsLive(query)` executing immediately on every keystroke (`oninput`).
+  - Evaluates search query terms against row metadata (`data-search` containing position title, requisition code, department, location, function, manager, status, and employment type).
+  - Multi-character and partial substring support:
+    - Typing `J` or `Ja` immediately keeps `Java Developer`, `Java Specialist`, `Java Junior`, `Java Senior` visible.
+    - Typing `special` immediately isolates `Java Specialist` (and other specialist roles) while instantly hiding all non-matching roles without a roundtrip delay.
+  - Included a responsive in-table empty-state row (`#clientNoMatchRow`) when zero rows match search criteria.
+  - Preserved cursor focus and clear button (`x`) for instant 1-click query clearing.
+- **Server-Side Tokenized Substring Query (`recruitment/views/requisition.py`):**
+  - Splits input into terms `search_q.split()`.
+  - For each term, applies `Q` filter across `position_title`, `requisition_code`, `job_position_id`, `department_id`, `location`, `function`, and hiring manager names.
+  - Ensures multi-token queries like `java special` accurately match `Java Specialist` on server-side queries.
+  - Submits asynchronously via debounced `form.requestSubmit()` to maintain URL bookmarking and synchronization.
+
+#### 7.11.3 Test Role Seeding & Automated Verification
+- Seeded database with complete Java role spectrum:
+  - `Java Developer` (`REQ-2026-0043`)
+  - `Java Specialist` (`REQ-2026-0072`)
+  - `Java Junior` (`REQ-2026-0073`)
+  - `Java Senior` (`REQ-2026-0074`)
+- Automated verification script [`scratch/verify_search_and_branding.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/scratch/verify_search_and_branding.py):
+  - **Query `J`:** returned all 4 Java roles.
+  - **Query `Ja`:** returned all 4 Java roles.
+  - **Query `special`:** returned `Java Specialist`; excluded `Java Developer`, `Java Junior`, `Java Senior`.
+  - **Query `java special`:** returned `Java Specialist`; excluded `System Specialist`, `Java Developer`, `Java Junior`, `Java Senior`.
+  - **Zero Branding:** confirmed 0 occurrences of `RMO-HRA-QF-001` across list view, detail view, form view, and PDF ticket.
+
+

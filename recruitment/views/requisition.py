@@ -1,7 +1,7 @@
 """
 recruitment/views/requisition.py
 
-Views for RMO Staff Requisition Form (RMO-HRA-QF-001).
+Views for Staff Requisition Form.
 Strictly governed by RBAC: only Executives, Department Heads, CTO, and Directors
 can originate and fill requisitions. HR and Admins audit and review.
 """
@@ -63,18 +63,22 @@ def staff_requisition_list(request):
     if dept_filter:
         queryset = queryset.filter(department_id_id=dept_filter)
 
-    # Search filter
+    # Search filter (multi-token substring match: supports partial tokens like 'J', 'Ja', 'special', etc.)
     search_q = request.GET.get("search")
     if search_q:
         search_q = search_q.strip()
-        queryset = queryset.filter(
-            Q(position_title__icontains=search_q)
-            | Q(requisition_code__icontains=search_q)
-            | Q(location__icontains=search_q)
-            | Q(manager_name__icontains=search_q)
-            | Q(requested_by__employee_first_name__icontains=search_q)
-            | Q(requested_by__employee_last_name__icontains=search_q)
-        )
+        terms = [t.strip() for t in search_q.split() if t.strip()]
+        for term in terms:
+            queryset = queryset.filter(
+                Q(position_title__icontains=term)
+                | Q(requisition_code__icontains=term)
+                | Q(job_position_id__job_position__icontains=term)
+                | Q(department_id__department__icontains=term)
+                | Q(location__icontains=term)
+                | Q(function__icontains=term)
+                | Q(requested_by__employee_first_name__icontains=term)
+                | Q(requested_by__employee_last_name__icontains=term)
+            )
 
     departments = Department.objects.filter(is_active=True)
 
@@ -199,7 +203,7 @@ def staff_requisition_detail(request, pk):
 def staff_requisition_pdf(request, pk):
     """
     Generates and downloads the individual PDF ticket matching
-    the official RMO-HRA-QF-001 RMO Staff Requisition Form standard.
+    the official Staff Requisition Form standard.
     """
     requisition = get_object_or_404(
         StaffRequisition.objects.select_related(

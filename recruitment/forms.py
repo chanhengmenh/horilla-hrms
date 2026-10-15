@@ -1496,7 +1496,7 @@ class LinkedInAccountForm(BaseModelForm):
 class StaffRequisitionForm(BaseModelForm):
     """
     Form for Executive Leadership / Head of Department to submit Staff Requisitions.
-    Replicates all inputs from quality form RMO-HRA-QF-001.
+    Captures complete position, recruitment justification, and compensation metadata.
     """
 
     class Meta:

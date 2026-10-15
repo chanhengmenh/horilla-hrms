@@ -31,7 +31,7 @@ from recruitment.views import dashboard as views_dashboard
 from recruitment.views import linkedin, requisition, search, surveys, views
 
 urlpatterns = [
-    # Staff Requisitions (RMO-HRA-QF-001)
+    # Staff Requisitions
     path(
         "staff-requisitions/",
         requisition.staff_requisition_list,

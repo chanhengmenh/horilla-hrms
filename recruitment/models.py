@@ -2114,11 +2114,11 @@ class LinkedInAccount(HorillaModel):
 
 class StaffRequisition(HorillaModel):
     """
-    RMO Staff Requisition Model (Quality Form RMO-HRA-QF-001).
+    RMO Staff Requisition Model.
     Headcount requisition requested exclusively by Executive Leadership / Department Heads.
     """
 
-    FORM_CODE = "RMO-HRA-QF-001"
+    FORM_CODE = "STAFF-REQ"
 
     EMPLOYMENT_TYPE_CHOICES = (
         ("permanent", _("Permanent")),
