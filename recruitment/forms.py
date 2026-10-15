@@ -1583,11 +1583,31 @@ class StaffRequisitionForm(BaseModelForm):
         self.fields["department_id"].empty_label = _("--- Select Department ---")
         if "job_position_id" in self.fields:
             self.fields["job_position_id"].empty_label = _("--- Select Job Position (Optional) ---")
+        if "position_requirements" in self.fields:
+            self.fields["position_requirements"].required = False
 
     def clean(self):
         cleaned_data = super().clean()
         emp_type = cleaned_data.get("employment_type")
         perm_cat = cleaned_data.get("permanent_category")
+
+        # Position requirements vs JD Attachment validation & auto-extraction
+        req_text = cleaned_data.get("position_requirements")
+        jd_file = cleaned_data.get("job_description_file")
+
+        if not req_text and not jd_file:
+            self.add_error(
+                "position_requirements",
+                _("Please enter position requirements or attach a Job Description (JD) document."),
+            )
+        elif not req_text and jd_file:
+            try:
+                from recruitment.methods import extract_text_from_jd_file
+                extracted = extract_text_from_jd_file(jd_file)
+                if extracted:
+                    cleaned_data["position_requirements"] = extracted
+            except Exception:
+                pass
 
         if emp_type == "permanent":
             if not perm_cat:

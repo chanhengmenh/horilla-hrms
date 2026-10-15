@@ -58,6 +58,11 @@ urlpatterns = [
         name="staff-requisition-status",
     ),
     path(
+        "staff-requisition-extract-jd/",
+        requisition.staff_requisition_extract_jd,
+        name="staff-requisition-extract-jd",
+    ),
+    path(
         "interview-view/", interview.InterviewViewPage.as_view(), name="interview-view"
     ),
     path(

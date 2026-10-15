@@ -277,8 +277,8 @@
                 {% if req.job_description_file %}
                 <div class="mt-2">
                     <span class="text-muted small">{% trans "Job Description Attachment:" %}</span>
-                    <a href="{{ req.job_description_file.url }}" target="_blank" class="ms-2 fw-bold" style="color: var(--primary-600, #e54f38);">
-                        <ion-icon name="document-attach-outline"></ion-icon> {% trans "View Attached JD" %}
+                    <a href="{{ req.job_description_file.url }}" target="_blank" class="ms-2 fw-semibold" style="color: var(--primary-600, #e54f38);">
+                        <ion-icon name="document-attach-outline" style="vertical-align: -2px;"></ion-icon> {{ req.job_description_filename|default:_("View Attached JD") }}
                     </a>
                 </div>
                 {% endif %}

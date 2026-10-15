@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -141,6 +141,11 @@ def staff_requisition_create(request):
                 req_instance.company_id = manager_company
             req_instance.status = "submitted"
             req_instance.requested_date = timezone.now().date()
+            if not req_instance.position_requirements and req_instance.job_description_file:
+                from recruitment.methods import extract_text_from_jd_file
+                extracted = extract_text_from_jd_file(req_instance.job_description_file)
+                if extracted:
+                    req_instance.position_requirements = extracted
             req_instance.save()
 
             messages.success(
@@ -283,3 +288,47 @@ def staff_requisition_status_update(request, pk):
         messages.warning(request, _(f"Requisition {requisition.requisition_code} has been Rejected."))
 
     return redirect("staff-requisition-detail", pk=pk)
+
+
+def staff_requisition_extract_jd(request):
+    """
+    AJAX endpoint: extracts plain text on-the-fly from an uploaded Job Description
+    document (.docx, .pdf, .txt) so the requester can preview and auto-populate
+    the Position Requirements field without manually typing.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": _("POST required")}, status=405)
+
+    if not is_executive_or_hod(request.user):
+        return JsonResponse({"error": _("Permission denied")}, status=403)
+
+    uploaded_file = request.FILES.get("job_description_file")
+    if not uploaded_file:
+        return JsonResponse({"error": _("No file provided")}, status=400)
+
+    from recruitment.methods import extract_text_from_jd_file
+
+    try:
+        extracted = extract_text_from_jd_file(uploaded_file, uploaded_file.name)
+        if not extracted:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": _(
+                        "Could not extract text from document. Please ensure it is a valid .docx, .pdf, or text file."
+                    ),
+                },
+                status=422,
+            )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "filename": uploaded_file.name,
+                "text": extracted,
+                "char_count": len(extracted),
+            }
+        )
+    except Exception as exc:
+        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+

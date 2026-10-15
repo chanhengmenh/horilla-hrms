@@ -2275,6 +2275,8 @@ class StaffRequisition(HorillaModel):
         verbose_name=_("Justification (Why is this position needed?)"),
     )
     position_requirements = models.TextField(
+        blank=True,
+        null=True,
         verbose_name=_("Position Requirements / Responsibilities"),
     )
     job_description_file = models.FileField(
@@ -2423,7 +2425,25 @@ class StaffRequisition(HorillaModel):
     def approved_date_formatted(self):
         return self._format_approval_date(self.approved_date)
 
+    @property
+    def job_description_filename(self):
+        """Returns clean filename of the attached JD document without storage folder path."""
+        if self.job_description_file:
+            import os
+            return os.path.basename(self.job_description_file.name)
+        return ""
+
     def save(self, *args, **kwargs):
+        # Auto-extract text from attached JD document if position_requirements is empty
+        if not self.position_requirements and self.job_description_file:
+            try:
+                from recruitment.methods import extract_text_from_jd_file
+                extracted = extract_text_from_jd_file(self.job_description_file)
+                if extracted:
+                    self.position_requirements = extracted
+            except Exception:
+                pass
+
         is_new = self.pk is None
         super().save(*args, **kwargs)
         if is_new and not self.requisition_code:

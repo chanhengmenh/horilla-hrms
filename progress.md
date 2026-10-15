@@ -397,15 +397,34 @@ Verified 5/5 test suites passing:
 
 #### 7.11.3 Test Role Seeding & Automated Verification
 - Seeded database with complete Java role spectrum:
-  - `Java Developer` (`REQ-2026-0043`)
-  - `Java Specialist` (`REQ-2026-0072`)
-  - `Java Junior` (`REQ-2026-0073`)
-  - `Java Senior` (`REQ-2026-0074`)
-- Automated verification script [`scratch/verify_search_and_branding.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/scratch/verify_search_and_branding.py):
-  - **Query `J`:** returned all 4 Java roles.
-  - **Query `Ja`:** returned all 4 Java roles.
-  - **Query `special`:** returned `Java Specialist`; excluded `Java Developer`, `Java Junior`, `Java Senior`.
-  - **Query `java special`:** returned `Java Specialist`; excluded `System Specialist`, `Java Developer`, `Java Junior`, `Java Senior`.
-  - **Zero Branding:** confirmed 0 occurrences of `RMO-HRA-QF-001` across list view, detail view, form view, and PDF ticket.
+### 7.12 Job Description Auto-Extraction & Clean PDF Report Presentation
+
+#### 7.12.1 Removal of Raw File Path from PDF Ticket
+- **Diagnosis:** `(Job Description attached: recruitment/requisition_jds/Job_Description_System_Specialist.docx)` previously appeared in Section 5 of the PDF ticket because of a redundant template conditional that printed the relative upload path whenever a file was attached, regardless of whether the user had already typed requirements.
+- **Resolution:**
+  - Removed the raw file path snippet from [`requisition_pdf_ticket.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_pdf_ticket.html). Section 5 strictly renders clean, executive-grade formatted text.
+  - Added clean filename helper `@property def job_description_filename(self)` in [`StaffRequisition`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/models.py) so user interfaces display only the basename (e.g. `Job_Description-System_Specialist.docx`) rather than internal filesystem paths.
+
+#### 7.12.2 Multi-Format Job Description Text Extraction Engine
+- **Engine Implementation ([`recruitment/methods.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/methods.py)):**
+  - Added `extract_text_from_jd_file(file_input, filename="")`:
+    - **`.docx` (Microsoft Word):** Parses `word/document.xml` using Python's built-in `zipfile` and `xml.etree.ElementTree` without requiring heavy external binaries or MS Office. Extracts paragraphs, bullet points, and headings cleanly.
+    - **`.pdf` (Portable Document Format):** In-memory page text extraction using `pymupdf` with automatic fallback to `pypdf`.
+    - **Plain Text / Markdown (`.txt`, `.md`, `.rtf`):** Decoded with `utf-8` / `latin-1`.
+- **Form & Model Automation ([`recruitment/forms.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/forms.py) & [`recruitment/models.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/models.py)):**
+  - Requesters can either type the requirements manually OR simply upload their JD file.
+  - If `position_requirements` is left blank, the system automatically parses the uploaded document and populates `position_requirements` with the extracted text during form validation and model `save()`.
+- **Interactive UI Auto-Fill ([`recruitment/templates/recruitment/requisition/requisition_form.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_form.html)):**
+  - Added AJAX endpoint [`/recruitment/staff-requisition-extract-jd/`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/views/requisition.py).
+  - When a user chooses a JD file in the creation form, JavaScript immediately reads and populates the `Position Requirements` textarea in real time with a success badge showing the extracted character count, allowing the requester to review or tweak the text before submitting.
+
+#### 7.12.3 Automated Verification
+- Ran test suite [`scratch/test_jd_extraction_and_report.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/scratch/test_jd_extraction_and_report.py):
+  - DOCX extraction: **1,708 characters** successfully parsed from `Job Description-System Specialist.docx`.
+  - TXT extraction: verified.
+  - Form validation: confirmed automatic population of `position_requirements` when only a file is attached.
+  - AJAX endpoint: confirmed live JSON payload.
+  - PDF Ticket clean presentation: verified zero occurrences of raw filesystem paths or clutter.
+
 
 
