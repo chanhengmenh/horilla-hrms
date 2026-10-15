@@ -104,16 +104,23 @@
             {% blocktrans with limit=pdf_row_limit %}PDF shows the first {{ limit }} rows. Use Excel for a fuller extract.{% endblocktrans %}
         </p>
 
-        {# "Open full report" hidden for now — detail page design isn't finalized yet. #}
-        <div class="oh-modal__dialog-footer pt-3 flex-wrap gap-2">
-            <button type="submit" name="format" value="xlsx" class="oh-btn oh-btn--secondary oh-btn--small">
-                <ion-icon name="download-outline"></ion-icon>
-                {% trans "Print Excel" %}
-            </button>
-            <button type="submit" name="format" value="pdf" class="oh-btn oh-btn--secondary oh-btn--small">
-                <ion-icon name="download-outline"></ion-icon>
-                {% trans "Print PDF" %}
-            </button>
+        <div class="oh-modal__dialog-footer pt-3 flex-wrap gap-2 justify-between items-center">
+            {% if detail_url %}
+            <a href="{{ detail_url }}" class="oh-btn oh-btn--light oh-btn--small text-primary-600 flex items-center gap-1" style="text-decoration:none;">
+                <ion-icon name="stats-chart-outline"></ion-icon>
+                {% trans "Open Full Report" %}
+            </a>
+            {% endif %}
+            <div class="flex gap-2">
+                <button type="submit" name="format" value="xlsx" class="oh-btn oh-btn--secondary oh-btn--small">
+                    <ion-icon name="download-outline"></ion-icon>
+                    {% trans "Print Excel" %}
+                </button>
+                <button type="submit" name="format" value="pdf" class="oh-btn oh-btn--secondary oh-btn--small">
+                    <ion-icon name="download-outline"></ion-icon>
+                    {% trans "Print PDF" %}
+                </button>
+            </div>
         </div>
     </form>
     {% else %}

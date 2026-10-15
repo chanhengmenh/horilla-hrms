@@ -338,6 +338,8 @@
        14px/#666 muted cell text) confirmed via computed styles on the
        Audit tab's real HorillaListView table. */
     .sr-row__name { font-weight: 600; font-size: 14px; }
+    .sr-row__name a { color: inherit; text-decoration: none; transition: color 0.15s ease; }
+    .sr-row__name a:hover { color: var(--primary-600, #E54F38); text-decoration: underline; }
     .sr-row__desc { margin-top: 1px; font-size: 14px; color: #666; }
     .dark .sr-row__desc { color: hsl(0, 0%, 65%); }
     .sr-row__meta {
@@ -671,6 +673,7 @@
                                     data-last-run="{% if report.last_run %}{{ report.last_run|date:'c' }}{% endif %}"
                                     data-print-url="{{ report.print_url }}"
                                     data-inspector-url="{{ report.inspector_url }}"
+                                    data-detail-url="{{ report.url }}"
                                 >
                                     <label class="sr-row__check" onclick="event.stopPropagation();">
                                         <input type="checkbox" class="oh-input oh-input__checkbox sr-bulk-check" data-slug="{{ report.slug }}">
@@ -679,13 +682,23 @@
                                         <ion-icon name="{{ section.icon }}"></ion-icon>
                                     </span>
                                     <div class="sr-row__body">
-                                        <div class="sr-row__name">{{ report.name }}</div>
+                                        <div class="sr-row__name">
+                                            <a href="{{ report.url }}" class="sr-row__title-link" onclick="event.stopPropagation();" title="{% trans 'View Report' %}">{{ report.name }}</a>
+                                        </div>
                                         <div class="sr-row__desc">{{ report.description }}</div>
                                     </div>
                                     <div class="sr-row__meta">
                                         {% if report.last_run %}{% blocktrans with t=report.last_run|timesince %}{{ t }} ago{% endblocktrans %}{% else %}—{% endif %}
                                     </div>
                                     <div class="sr-row__actions">
+                                        <a
+                                            href="{{ report.url }}"
+                                            class="oh-btn oh-btn--sq-sm oh-btn--transparent sr-row__btn text-primary-600 hover:text-primary-700"
+                                            title="{% trans 'View Report' %}"
+                                            onclick="event.stopPropagation();"
+                                        >
+                                            <ion-icon name="stats-chart-outline"></ion-icon>
+                                        </a>
                                         <button
                                             type="button"
                                             class="oh-btn oh-btn--sq-sm oh-btn--transparent sr-row__btn sr-fav-btn{% if report.is_favorite %} is-on{% endif %}"
@@ -973,14 +986,14 @@ function initStandardCatalog() {
     }
 
     document.querySelectorAll(".sr-row").forEach(function (row) {
+        row.addEventListener("dblclick", function (e) {
+            if (row.dataset.detailUrl) {
+                window.location.href = row.dataset.detailUrl;
+            }
+        });
         row.addEventListener("click", function (e) {
             if (sectionsEl && sectionsEl.classList.contains("sr-view--grid")) {
-                // Grid mode: no inspector panel — clicking the card body
-                // opens the export modal directly. The #genericModal shell
-                // comes from generic/components.html (pulled in on every
-                // page via the floating_button include, outside the htmx
-                // swap target); the injected content's close button is bound
-                // by the app-wide htmx:afterSettle handler in htmxSelect2.js.
+                // Grid mode: clicking card body opens export modal
                 htmx.ajax("GET", row.dataset.printUrl, { target: "#genericModalBody", swap: "innerHTML" }).then(function () {
                     document.getElementById("genericModal").classList.add("oh-modal--show");
                 });

@@ -109,6 +109,13 @@ BREADCRUMB_URL_NAMES = {
     "performance-settings-view": "Configuration",
     "user-group-view": "Roles and Permissions",
     "employee-permission-assign": "Roles and Permissions",
+    "staff-requisitions": _("Staff Requisitions"),
+    "staff-requisition-create": _("Create Staff Requisition"),
+    "staff-requisition-detail": _("Staff Requisition Details"),
+    "staff-requisition-summary": _("Staff Requisition Summary"),
+    "standard": _("Standard Reports"),
+    "report": _("Reports"),
+    "explorer": _("Explorer"),
 }
 
 sidebar_urls = [
@@ -281,6 +288,13 @@ sidebar_urls = [
     "performance-settings-view",
     "tours",
     "templates-periods",
+    "staff-requisitions",
+    "staff-requisition-view",
+    "standard",
+    "standard-report-catalog",
+    "report",
+    "report-explorer",
+    "explorer",
 ]
 remove_urls = [
     "feedback-detailed-view",
@@ -414,6 +428,31 @@ def breadcrumbs(request):
                     employee.id for employee in employees
                 ]
 
+        # Collect dynamic submenu redirects from all registered sidebar apps
+        submenu_redirects = set()
+        for m in menus or []:
+            for sm in m.get("submenu", []):
+                redir = sm.get("redirect")
+                if redir:
+                    submenu_redirects.add(str(redir).rstrip("/"))
+
+        # 1) If switching between top-level sections (e.g. from Recruitment to Reports),
+        # clear crumbs back to the root company breadcrumb so prior section trail is not stacked.
+        if len(breadcrumbs) > 1 and current_section:
+            existing_section = breadcrumbs[1].get("name")
+            if existing_section and existing_section != current_section[0]:
+                first_path = breadcrumbs[0]
+                request.session["breadcrumbs"].clear()
+                request.session["breadcrumbs"].append(first_path)
+
+        # 2) If landing directly on any top-level sidebar submenu redirect,
+        # reset to root company breadcrumb so we start fresh from the section root.
+        req_path_clean = request.path.rstrip("/")
+        if req_path_clean in submenu_redirects:
+            first_path = breadcrumbs[0]
+            request.session["breadcrumbs"].clear()
+            request.session["breadcrumbs"].append(first_path)
+
         if len(parts) == 0:
             request.session["breadcrumbs"].clear()
             breadcrumbs.append({"url": base_url, "name": company, "found": True})
@@ -463,13 +502,26 @@ def breadcrumbs(request):
                 if required_perms:
                     clickable = all(request.user.has_perm(p) for p in required_perms)
 
+            display_name = BREADCRUMB_URL_NAMES.get(item)
+            if not display_name:
+                try:
+                    from report.registry import get_report
+
+                    rep_def = get_report(item)
+                    if rep_def:
+                        display_name = str(rep_def.name)
+                except Exception:
+                    pass
+            if not display_name:
+                display_name = item
+
             new_dict = {
                 "url": path,
                 # str() resolves any gettext_lazy() entries to a plain string
                 # now, in the request's own active locale, since breadcrumbs
                 # get JSON-serialized into the session (a lazy translation
                 # proxy isn't JSON-serializable and would 500 the request).
-                "name": str(BREADCRUMB_URL_NAMES.get(item, item)),
+                "name": str(display_name),
                 "found": found,
                 "clickable": clickable,
             }
@@ -578,3 +630,4 @@ urlpatterns.append(path("pms/", _section_redirect("dashboard-view")))
 urlpatterns.append(path("asset/", _section_redirect("asset-dashboard")))
 urlpatterns.append(path("project/", _section_redirect("project-dashboard-view")))
 urlpatterns.append(path("helpdesk/", _section_redirect("helpdesk-dashboard")))
+urlpatterns.append(path("report/", _section_redirect("standard-report-catalog")))

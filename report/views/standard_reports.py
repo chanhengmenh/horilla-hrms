@@ -332,6 +332,14 @@ def standard_report_inspector(request, slug):
         audit_qs.select_related("user__employee_get").order_by("-created_at")[:5]
     )
 
+    kpis = []
+    try:
+        filters = filters_from_request(request)
+        kpi_data = run_report_kpis(slug, filters)
+        kpis = (kpi_data.get("kpis") or [])[:4]
+    except Exception:
+        kpis = []
+
     return render(
         request,
         "report/standard_report_inspector.html",
@@ -340,6 +348,7 @@ def standard_report_inspector(request, slug):
             "report_name": str(definition.name),
             "report_description": str(definition.description),
             "slug": slug,
+            "detail_url": reverse("standard-report-detail", args=[slug]),
             "print_url": reverse("standard-report-print-filters", args=[slug]),
             "subscribe_url": reverse("standard-report-subscribe", args=[slug]),
             "can_subscribe": user_can_subscribe_report(
@@ -347,6 +356,7 @@ def standard_report_inspector(request, slug):
             ),
             "subscription": subscription,
             "audit_entries": audit_entries,
+            "kpis": kpis,
         },
     )
 
