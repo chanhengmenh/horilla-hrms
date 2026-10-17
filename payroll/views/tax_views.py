@@ -17,7 +17,7 @@ from urllib.parse import parse_qs
 from datetime import date, timedelta
 
 from django.contrib import messages
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils.translation import gettext_lazy as _
@@ -29,6 +29,7 @@ from horilla.http.response import HorillaRedirect
 from payroll.forms.tax_forms import (
     ExchangeRateForm,
     FilingStatusForm,
+    NFFSExchangeRateForm,
     SettingsExchangeRateForm,
     TaxBracketForm,
 )
@@ -86,15 +87,10 @@ def exchange_rate_view(request):
     and every salary / pension calculation picks the new rate up automatically.
 
     """
-    tracking_company = get_session_company(request)
-    # If a rate already exists (for this or any company scope) reuse that row
-    # so there is only ever ONE active rate row — otherwise saving while a
-    # different company is selected would create a second, competing row.
-    instance = PayrollSettings.objects.filter(usd_to_khr_rate__isnull=False).first()
-    if instance is None:
-        instance, _created = PayrollSettings.objects.get_or_create(
-            company_id=tracking_company
-        )
+    # THE shared settings row (created lazily on the first save) so there is
+    # only ever ONE active rate row — saving while a different company is
+    # selected must not create a second, competing row.
+    instance = _get_payroll_settings_instance(request, create=True)
 
     exchange_rate = instance.usd_to_khr_rate
 
@@ -119,6 +115,114 @@ def exchange_rate_view(request):
         "rate_form": form,
     }
     return render(request, "payroll/tax/exchange_rate_form.html", context)
+
+
+def _get_payroll_settings_instance(request, create=False):
+    """
+    Resolve THE single PayrollSettings row that carries the exchange-rate
+    data (USD -> KHR and NFFS).
+
+    Every view that touches the rates must use this helper so they all
+    agree on the same row. Looking the row up by different criteria (one
+    view by company, another by "usd rate is set") used to split the data
+    across several rows: the NFFS rate saved by one view was invisible to
+    the others after a page refresh, and empty duplicate rows piled up.
+    """
+    tracking_company = get_session_company(request)
+    # 1) Prefer the row that actually carries rate data (oldest first).
+    instance = (
+        PayrollSettings._base_manager.filter(
+            Q(usd_to_khr_rate__isnull=False) | Q(nffs_exchange_rate__isnull=False)
+        )
+        .order_by("id")
+        .first()
+    )
+    if instance is not None:
+        return instance
+    # 2) Any existing row for the session company (or a global row).
+    instance = (
+        PayrollSettings._base_manager.filter(company_id=tracking_company)
+        .order_by("id")
+        .first()
+    )
+    # 3) Create one lazily - only ever from POST handlers (create=True),
+    #    never from a plain page load.
+    if instance is None and create:
+        instance = PayrollSettings.objects.create(company_id=tracking_company)
+    return instance
+
+
+@login_required
+@hx_request_required
+@permission_required("payroll.change_payrollsettings")
+def settings_exchange_rate_nffs_view(request):
+    """
+    NFFS Exchange Rate card for Settings -> General (System Preferences).
+
+    Shows the active NFFS exchange rate (1 USD = ? NFFS) with a manual
+    update form and the recent NFFS rate history. On a successful POST the
+    card fragment is re-rendered (HTMX outerHTML swap) so the new value
+    shows right away.
+    """
+    # THE shared settings row (created lazily on the first save).
+    instance = _get_payroll_settings_instance(request, create=True)
+
+    if request.method == "POST":
+        form = NFFSExchangeRateForm(request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            instance.refresh_from_db()
+            messages.success(request, _("NFFS exchange rate updated successfully."))
+        else:
+            messages.error(
+                request, _("Enter a valid exchange rate greater than zero.")
+            )
+    else:
+        form = NFFSExchangeRateForm(instance=instance)
+
+    context = _get_settings_rate_context(request, rate_form=form)
+    return render(request, "payroll/settings/nbc_exchange_rate.html", context)
+
+
+@login_required
+@hx_request_required
+@permission_required("payroll.change_payrollsettings")
+def settings_exchange_rate_nffs_auto_fetch_toggle(request):
+    """
+    Toggle the "Automatic monthly NFFS fetch" switch of the Exchange Rate
+    card (Settings -> General).
+
+    The switch defaults to OFF: the NFFS exchange rate is then input MANUALLY
+    and is never overwritten by the background jobs, which only ever adjust
+    the USD -> KHR rate. Switching ON re-enables the automatic application
+    of the official NFFS rate of the 15th of every month (scheduler job to
+    be added separately).
+    """
+    # THE shared settings row (created lazily on the first save).
+    instance = _get_payroll_settings_instance(request, create=True)
+    # Honour the checkbox value posted by the oh-switch; fall back to a flip
+    # when the payload does not carry one (defensive).
+    if "auto_fetch_nffs_rate" in request.POST:
+        enabled = request.POST.get("auto_fetch_nffs_rate") in ("on", "true", "1")
+    else:
+        enabled = not instance.auto_fetch_nffs_rate
+    instance.auto_fetch_nffs_rate = enabled
+    instance.save()
+
+    messages.success(
+        request,
+        _(
+            "Automatic monthly NFFS fetch enabled: the official rate of the "
+            "15th will be applied automatically."
+        )
+        if enabled
+        else _(
+            "Automatic monthly NFFS fetch disabled: the exchange rate is now "
+            "maintained manually and will never be overwritten."
+        ),
+    )
+    context = _get_settings_rate_context(request)
+    return render(request, "payroll/settings/nbc_exchange_rate.html", context)
 
 
 def _parse_iso_date(value):
@@ -293,14 +397,11 @@ def _get_settings_rate_context(request, rate_form=None):
     Shared context builder for the Exchange Rate card on the System
     Preferences page (Settings -> General).
         """
-    tracking_company = get_session_company(request)
-    # Keep exactly ONE active rate row, shared with the Salary Tax page
-    # (see exchange_rate_view above for the same behaviour).
-    instance = PayrollSettings.objects.filter(usd_to_khr_rate__isnull=False).first()
+    # THE shared settings row. Never created on a plain page load: render the
+    # empty state instead of writing a junk row to the database.
+    instance = _get_payroll_settings_instance(request)
     if instance is None:
-        instance, _created = PayrollSettings.objects.get_or_create(
-            company_id=tracking_company
-        )
+        instance = PayrollSettings()
 
     today = date.today()
 
@@ -330,11 +431,30 @@ def _get_settings_rate_context(request, rate_form=None):
     except Exception:
         next_preview = None
 
+    # Automatic monthly fetch toggles (both default OFF = manual entry only).
+    # The flags live on THE shared settings row so the switches on the card
+    # always match what the toggle views write.
+    auto_fetch_nbc_rate = bool(instance.auto_fetch_nbc_rate)
+    auto_fetch_nffs_rate = bool(instance.auto_fetch_nffs_rate)
+
+    # Create the NFFS exchange rate form from the rate_form parameter if provided,
+    # otherwise create a new form for the instance. This ensures the saved/updated
+    # form state is preserved after HTMX form submission.
+    if rate_form is not None:
+        nffs_rate_form = rate_form
+    else:
+        nffs_rate_form = NFFSExchangeRateForm(instance=instance)
+
     context = {
         "exchange_rate": instance.usd_to_khr_rate,
         "rate_form": rate_form or SettingsExchangeRateForm(instance=instance),
+        "nffs_rate_form": nffs_rate_form,
+        "nffs_exchange_rate": instance.nffs_exchange_rate,
+        "nffs_effective_date": instance.nffs_effective_date,
+        "nffs_auto_fetch_rate": auto_fetch_nffs_rate,
         "rate_history": NBCExchangeRate.objects.all()[:12],
         "current_date": today,
+        "auto_fetch_nbc_rate": auto_fetch_nbc_rate,
         "next_effective_date": requested_15,
         # Automatic day-15 schedule (always about the CURRENT month).
         "day_15_date": requested_15,
@@ -368,14 +488,7 @@ def settings_exchange_rate_view(request):
     """
     form = None
     if request.method == "POST":
-        tracking_company = get_session_company(request)
-        instance = PayrollSettings.objects.filter(
-            usd_to_khr_rate__isnull=False
-        ).first()
-        if instance is None:
-            instance, _created = PayrollSettings.objects.get_or_create(
-                company_id=tracking_company
-            )
+        instance = _get_payroll_settings_instance(request, create=True)
 
         # The Exchange Rate Calendar can set the rate of one explicit day;
         # the plain card form always applies to today.
@@ -425,6 +538,47 @@ def settings_exchange_rate_fetch_nbc(request):
     else:
         messages.error(request, _(message))
 
+    context = _get_settings_rate_context(request)
+    return render(request, "payroll/settings/nbc_exchange_rate.html", context)
+
+
+@login_required
+@hx_request_required
+@permission_required("payroll.change_payrollsettings")
+def settings_exchange_rate_auto_fetch_toggle(request):
+    """
+    Toggle the "Automatic monthly NBC fetch" switch of the Exchange Rate card
+    (Settings -> General).
+
+    The switch defaults to OFF: the USD -> KHR exchange rate is then input
+    MANUALLY and the background scheduler (payroll.scheduler
+    .fetch_nbc_exchange_rate -> ensure_monthly_nbc_rate) never overwrites it.
+    Switching ON re-enables the automatic application of the official NBC
+    rate of the 15th of every month.
+    """
+    # THE shared settings row (created lazily on the first save).
+    instance = _get_payroll_settings_instance(request, create=True)
+    # Honour the checkbox value posted by the oh-switch; fall back to a flip
+    # when the payload does not carry one (defensive).
+    if "auto_fetch_nbc_rate" in request.POST:
+        enabled = request.POST.get("auto_fetch_nbc_rate") in ("on", "true", "1")
+    else:
+        enabled = not instance.auto_fetch_nbc_rate
+    instance.auto_fetch_nbc_rate = enabled
+    instance.save()
+
+    messages.success(
+        request,
+        _(
+            "Automatic monthly NBC fetch enabled: the official rate of the "
+            "15th will be applied automatically."
+        )
+        if enabled
+        else _(
+            "Automatic monthly NBC fetch disabled: the exchange rate is now "
+            "maintained manually and will never be overwritten."
+        ),
+    )
     context = _get_settings_rate_context(request)
     return render(request, "payroll/settings/nbc_exchange_rate.html", context)
 

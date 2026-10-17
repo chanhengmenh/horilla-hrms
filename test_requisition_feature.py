@@ -1,281 +1,392 @@
 """
 test_requisition_feature.py
 
-Comprehensive test suite for:
-1. RBAC enforcement on Requisition Entry Form (Executives only; HR/Admin blocked from originating)
-2. Requisition creation and ticket generation
-3. Individual PDF ticket generation (RMO-HRA-QF-001)
-4. Talent Requisition Audit / Summary Report under Reports > Talent
-5. Excel and PDF exports
+Comprehensive test suite verifying all 5 core system requirements:
+1. Four Departments Only: Technical Department, Admin-HR Department, Finance Department, Sales Department.
+2. Employee Western Renaming: All 54 employees renamed to fictional Western names.
+3. Staff Requisition RBAC Enforcement:
+   - [HR] and [ADMIN] have full access to Request and Review.
+   - Only CEO (is_ceo) has authority to Approve (can_approve_requisition).
+   - Regular staff cannot request or review.
+4. Employment Period Optional for Contract and Intern requisitions.
+5. Job Description (JD) document is strictly mandatory for hard print and review.
+6. PDF Ticket generation (RMO-HRA-QF-001) and Talent Audit / Summary Report exports.
 """
 
 import os
 import sys
 import django
 from datetime import date, timedelta
+from io import BytesIO
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'horilla.settings')
 django.setup()
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory
 from django.contrib.auth.models import Group, Permission
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.utils import timezone
 
 from horilla_auth.models import HorillaUser
 from employee.models import Employee, EmployeeWorkInformation
 from base.models import Company, Department, JobPosition, JobRole
 from recruitment.models import StaffRequisition
-from recruitment.accessibility import is_executive_or_hod, can_audit_requisition
-from recruitment.views.requisition import staff_requisition_create, staff_requisition_pdf
+from recruitment.accessibility import (
+    is_ceo,
+    can_request_requisition,
+    can_review_requisition,
+    can_approve_requisition,
+    is_executive_or_hod,
+)
+from recruitment.forms import StaffRequisitionForm
+from recruitment.views.requisition import (
+    staff_requisition_create,
+    staff_requisition_status_update,
+    staff_requisition_pdf,
+)
 from report.engine import ReportFilters
 from report.registry import run_report, get_report
 from report.export import export_pdf, export_xlsx
 
 
+def attach_request_middleware(request):
+    """Attach session and messages storage to a RequestFactory request."""
+    session_middleware = SessionMiddleware(lambda req: None)
+    session_middleware.process_request(request)
+    request.session.save()
+    setattr(request, '_messages', FallbackStorage(request))
+    return request
+
+
 def run_tests():
-    print("=" * 60)
-    print("STARTING STAFF REQUISITION & RBAC AUDIT TEST SUITE")
-    print("=" * 60)
+    print("=" * 70)
+    print("STARTING HORILLA HRMS SYSTEM REQUIREMENTS & RBAC AUDIT TEST SUITE")
+    print("=" * 70)
 
-    # 1. Setup Test Entities
+    # -------------------------------------------------------------
+    # 1. SETUP TEST ENTITIES & RETRIEVE FIXTURES
+    # -------------------------------------------------------------
     company = Company.objects.first()
-    it_dept, _ = Department.objects.get_or_create(department="IT")
-    brewery_dept, _ = Department.objects.get_or_create(department="Brewery")
-    hr_dept, _ = Department.objects.get_or_create(department="HR & Admin")
+    assert company is not None, "Company record must exist in database!"
 
-    # 1.1 Create Executive User: CTO
-    cto_user, _ = HorillaUser.objects.get_or_create(username="cto_test@horilla.com.kh")
-    cto_user.set_password("pass123")
-    cto_user.save()
-    cto_emp, _ = Employee.objects.get_or_create(
-        employee_user_id=cto_user,
-        defaults={"badge_id": "EXEC01", "employee_first_name": "Sophea", "employee_last_name": "Chan", "email": "cto_test@horilla.com.kh"}
+    # -------------------------------------------------------------
+    # TEST 1: COMPANY STRUCTURE CONSOLIDATION (4 DEPARTMENTS ONLY)
+    # -------------------------------------------------------------
+    print("\n--- TEST 1: COMPANY STRUCTURE (4 DEPARTMENTS ONLY) ---")
+    all_depts = list(Department.objects.values_list("department", flat=True))
+    print(f"Active departments in DB ({len(all_depts)}): {all_depts}")
+    expected_depts = {
+        "Technical Department",
+        "Admin-HR Department",
+        "Finance Department",
+        "Sales Department",
+    }
+    assert set(all_depts) == expected_depts, (
+        f"Departments must strictly be {expected_depts}, found {set(all_depts)}"
     )
-    cto_pos, _ = JobPosition.objects.get_or_create(job_position="Chief Technology Officer", department_id=it_dept)
-    cto_role, _ = JobRole.objects.get_or_create(job_role="Chief Technology Officer", job_position_id=cto_pos)
-    cto_work, _ = EmployeeWorkInformation.objects.get_or_create(
-        employee_id=cto_emp,
-        defaults={"department_id": it_dept, "job_position_id": cto_pos, "job_role_id": cto_role, "company_id": company, "email": "cto_test@horilla.com.kh"}
+    assert len(all_depts) == 4, f"Exactly 4 departments must exist, found {len(all_depts)}"
+    print(">> [PASS] Company structure strictly consolidated to 4 standard departments!")
+
+    tech_dept = Department.objects.get(department="Technical Department")
+    admin_hr_dept = Department.objects.get(department="Admin-HR Department")
+    finance_dept = Department.objects.get(department="Finance Department")
+    sales_dept = Department.objects.get(department="Sales Department")
+
+    # -------------------------------------------------------------
+    # TEST 2: EMPLOYEE WESTERN FICTIONAL RENAMING AUDIT
+    # -------------------------------------------------------------
+    print("\n--- TEST 2: EMPLOYEE WESTERN FICTIONAL RENAMING AUDIT ---")
+    employees = list(Employee.objects.all())
+    print(f"Total employees in system: {len(employees)}")
+    assert len(employees) >= 50, f"Expected full employee roster, found {len(employees)}"
+
+    # Check key fixtures
+    ceo_emp = Employee.objects.filter(badge_id="EMP001").first()
+    assert ceo_emp is not None, "Badge EMP001 (CEO) must exist!"
+    assert ceo_emp.get_full_name() == "Eleanor Sterling", f"EMP001 must be Eleanor Sterling, found {ceo_emp.get_full_name()}"
+
+    admin_emp = Employee.objects.filter(badge_id="ADMIN01").first()
+    assert admin_emp is not None, "Badge ADMIN01 (Admin) must exist!"
+    assert admin_emp.get_full_name() == "Arthur Pendelton", f"ADMIN01 must be Arthur Pendelton, found {admin_emp.get_full_name()}"
+
+    cto_emp = Employee.objects.filter(badge_id="EXEC01").first()
+    assert cto_emp is not None, "Badge EXEC01 (CTO) must exist!"
+    assert cto_emp.get_full_name() == "Ethan Vance", f"EXEC01 must be Ethan Vance, found {cto_emp.get_full_name()}"
+
+    hr_emp = Employee.objects.filter(badge_id="HROFF01").first()
+    assert hr_emp is not None, "Badge HROFF01 (HR Officer) must exist!"
+    assert hr_emp.get_full_name() == "Mason Brooks", f"HROFF01 must be Mason Brooks, found {hr_emp.get_full_name()}"
+
+    hod_emp = Employee.objects.filter(badge_id="HOD01").first()
+    assert hod_emp is not None, "Badge HOD01 (Sales Head) must exist!"
+    assert hod_emp.get_full_name() == "Liam O'Connor", f"HOD01 must be Liam O'Connor, found {hod_emp.get_full_name()}"
+
+    # Verify absence of legacy Cambodian strings
+    for emp in employees:
+        full = emp.get_full_name()
+        for forbidden in ["Sophea", "Sreymom", "Sarvorneat", "Dara", "Sok", "Pich", "Thida"]:
+            assert forbidden.lower() not in full.lower(), f"Employee {emp.badge_id} ({full}) contains legacy name fragment '{forbidden}'"
+    print(">> [PASS] All employees successfully verified as synthetic Western fictional names!")
+
+    # Retrieve user accounts
+    ceo_user = ceo_emp.employee_user_id
+    admin_user = admin_emp.employee_user_id
+    cto_user = cto_emp.employee_user_id
+    hr_user = hr_emp.employee_user_id
+    hod_user = hod_emp.employee_user_id
+    regular_emp = Employee.objects.filter(badge_id="EMP020").first()  # Abigail Clark
+    regular_user = regular_emp.employee_user_id
+
+    # -------------------------------------------------------------
+    # TEST 3: STAFF REQUISITION RBAC PERMISSION ENFORCEMENT
+    # -------------------------------------------------------------
+    print("\n--- TEST 3: RBAC PERMISSION ENFORCEMENT ---")
+    print(f"CEO ({ceo_user.username}): is_ceo={is_ceo(ceo_user)}, can_req={can_request_requisition(ceo_user)}, can_rev={can_review_requisition(ceo_user)}, can_appr={can_approve_requisition(ceo_user)}")
+    print(f"HR ({hr_user.username}): is_ceo={is_ceo(hr_user)}, can_req={can_request_requisition(hr_user)}, can_rev={can_review_requisition(hr_user)}, can_appr={can_approve_requisition(hr_user)}")
+    print(f"Admin ({admin_user.username}): is_ceo={is_ceo(admin_user)}, can_req={can_request_requisition(admin_user)}, can_rev={can_review_requisition(admin_user)}, can_appr={can_approve_requisition(admin_user)}")
+    print(f"CTO ({cto_user.username}): is_ceo={is_ceo(cto_user)}, can_req={can_request_requisition(cto_user)}, can_rev={can_review_requisition(cto_user)}, can_appr={can_approve_requisition(cto_user)}")
+    print(f"Regular ({regular_user.username}): is_ceo={is_ceo(regular_user)}, can_req={can_request_requisition(regular_user)}, can_rev={can_review_requisition(regular_user)}, can_appr={can_approve_requisition(regular_user)}")
+
+    # 3.1 CEO Permissions
+    assert is_ceo(ceo_user) is True, "CEO user must be recognized as CEO!"
+    assert can_request_requisition(ceo_user) is True, "CEO must be allowed to request headcount!"
+    assert can_approve_requisition(ceo_user) is True, "CEO must be allowed to approve headcount!"
+
+    # 3.2 HR Permissions: Full access to Request and Review, CANNOT Approve
+    assert is_ceo(hr_user) is False, "HR user must NOT be recognized as CEO!"
+    assert can_request_requisition(hr_user) is True, "HR must have full access to request staff requisition!"
+    assert can_review_requisition(hr_user) is True, "HR must have full access to review staff requisition!"
+    assert can_approve_requisition(hr_user) is False, "HR must NOT be allowed to approve staff requisition!"
+
+    # 3.3 Admin Permissions: Full access to Request and Review, CANNOT Approve
+    assert is_ceo(admin_user) is False, "Admin user must NOT be recognized as CEO!"
+    assert can_request_requisition(admin_user) is True, "Admin must have full access to request staff requisition!"
+    assert can_review_requisition(admin_user) is True, "Admin must have full access to review staff requisition!"
+    assert can_approve_requisition(admin_user) is False, "Admin must NOT be allowed to approve staff requisition!"
+
+    # 3.4 CTO / Department Head Permissions: Can request, CANNOT approve
+    assert can_request_requisition(cto_user) is True, "CTO must be allowed to request headcount!"
+    assert can_approve_requisition(cto_user) is False, "CTO must NOT be allowed to approve headcount!"
+    assert can_request_requisition(hod_user) is True, "Sales Head must be allowed to request headcount!"
+    assert can_approve_requisition(hod_user) is False, "Sales Head must NOT be allowed to approve headcount!"
+
+    # 3.5 Regular Unprivileged Staff: Blocked from Requesting and Reviewing
+    assert can_request_requisition(regular_user) is False, "Regular employee must NOT be allowed to request headcount!"
+    assert can_review_requisition(regular_user) is False, "Regular employee must NOT be allowed to review headcount!"
+    assert can_approve_requisition(regular_user) is False, "Regular employee must NOT be allowed to approve headcount!"
+
+    print(">> [PASS] RBAC strictly enforces Request & Review for HR/Admin, and restricts Approve exclusively to CEO!")
+
+    # -------------------------------------------------------------
+    # TEST 4: FORM VALIDATION (MANDATORY JD & OPTIONAL CONTRACT/INTERN PERIOD)
+    # -------------------------------------------------------------
+    print("\n--- TEST 4: FORM VALIDATION (MANDATORY JD & OPTIONAL PERIODS) ---")
+
+    # 4.1 Submitting without JD document MUST FAIL validation
+    dummy_jd_file = SimpleUploadedFile(
+        "Job_Description_Test.docx",
+        b"Sample Job Description content for hard print verification.",
+        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
-    cto_work.job_position_id = cto_pos
-    cto_work.job_role_id = cto_role
-    cto_work.department_id = it_dept
-    cto_work.save()
 
-    # 1.2 Create Pure HR Officer User (Non-executive)
-    hr_user, _ = HorillaUser.objects.get_or_create(username="hrofficer_test@horilla.com.kh")
-    hr_user.set_password("pass123")
-    hr_user.save()
-    hr_emp, _ = Employee.objects.get_or_create(
-        employee_user_id=hr_user,
-        defaults={"badge_id": "HROFF01", "employee_first_name": "Sreymom", "employee_last_name": "Pich", "email": "hrofficer_test@horilla.com.kh"}
+    data_without_jd = {
+        "position_title": "[TEST] Contract Network Engineer",
+        "department_id": tech_dept.id,
+        "location": "Phnom Penh Main Office",
+        "function": "IT Infrastructure",
+        "headcount": 1,
+        "employment_type": "contract",
+        "contract_term": "full_time",
+        "working_days_hours": "Mon-Fri 8am-5pm",
+        "justification": "Network hardware installation project",
+    }
+    form_no_jd = StaffRequisitionForm(data=data_without_jd, files={})
+    assert form_no_jd.is_valid() is False, "Form submitted without JD document must fail validation!"
+    assert "job_description_file" in form_no_jd.errors, "Form must have error on 'job_description_file'!"
+    print(">> [PASS] Requisition rejected when JD document is missing (Mandatory for hard print)!")
+
+    # 4.2 Submitting Contract Requisition with JD document but WITHOUT period_from/period_to MUST SUCCEED
+    dummy_jd_file.seek(0)
+    data_contract_no_period = {
+        "position_title": "[TEST] Contract Network Engineer",
+        "department_id": tech_dept.id,
+        "location": "Phnom Penh Main Office",
+        "function": "IT Infrastructure",
+        "headcount": 1,
+        "employment_type": "contract",
+        "contract_term": "full_time",
+        "period_from": "",  # Optional
+        "period_to": "",    # Optional
+        "working_days_hours": "Mon-Fri 8am-5pm",
+        "justification": "Network hardware installation project",
+    }
+    form_contract = StaffRequisitionForm(
+        data=data_contract_no_period,
+        files={"job_description_file": dummy_jd_file}
     )
-    hr_pos, _ = JobPosition.objects.get_or_create(job_position="HR Officer", department_id=hr_dept)
-    hr_role, _ = JobRole.objects.get_or_create(job_role="HR Officer", job_position_id=hr_pos)
-    hr_work, _ = EmployeeWorkInformation.objects.get_or_create(
-        employee_id=hr_emp,
-        defaults={"department_id": hr_dept, "job_position_id": hr_pos, "job_role_id": hr_role, "company_id": company, "email": "hrofficer_test@horilla.com.kh"}
+    assert form_contract.is_valid() is True, f"Contract requisition without dates should be valid! Errors: {form_contract.errors}"
+    print(">> [PASS] Contract requisition without employment period successfully validated (Period is Optional)!")
+
+    # 4.3 Submitting Intern Requisition with JD document but WITHOUT period_from/period_to MUST SUCCEED
+    dummy_jd_file.seek(0)
+    data_intern_no_period = {
+        "position_title": "[TEST] Summer Software Intern",
+        "department_id": tech_dept.id,
+        "location": "Phnom Penh Main Office",
+        "function": "Software Development",
+        "headcount": 2,
+        "employment_type": "intern",
+        "contract_term": "full_time",
+        "period_from": "",  # Optional
+        "period_to": "",    # Optional
+        "working_days_hours": "Mon-Fri 8:30am-5pm",
+        "justification": "Assisting frontend UI improvements",
+    }
+    form_intern = StaffRequisitionForm(
+        data=data_intern_no_period,
+        files={"job_description_file": dummy_jd_file}
     )
-    hr_work.job_position_id = hr_pos
-    hr_work.job_role_id = hr_role
-    hr_work.department_id = hr_dept
-    hr_work.save()
+    assert form_intern.is_valid() is True, f"Intern requisition without dates should be valid! Errors: {form_intern.errors}"
+    print(">> [PASS] Intern requisition without employment period successfully validated (Period is Optional)!")
 
-    # 1.3 Create Head of Department: Head of Brewery
-    hod_user, _ = HorillaUser.objects.get_or_create(username="hod_brewery@horilla.com.kh")
-    hod_user.set_password("pass123")
-    hod_user.save()
-    hod_emp, _ = Employee.objects.get_or_create(
-        employee_user_id=hod_user,
-        defaults={"badge_id": "HOD01", "employee_first_name": "Rath", "employee_last_name": "Sok", "email": "hod_brewery@horilla.com.kh"}
-    )
-    hod_pos, _ = JobPosition.objects.get_or_create(job_position="Head of Brewery", department_id=brewery_dept)
-    hod_role, _ = JobRole.objects.get_or_create(job_role="Head of Brewery", job_position_id=hod_pos)
-    hod_work, _ = EmployeeWorkInformation.objects.get_or_create(
-        employee_id=hod_emp,
-        defaults={"department_id": brewery_dept, "job_position_id": hod_pos, "job_role_id": hod_role, "company_id": company, "email": "hod_brewery@horilla.com.kh"}
-    )
-    hod_work.job_position_id = hod_pos
-    hod_work.job_role_id = hod_role
-    hod_work.department_id = brewery_dept
-    hod_work.save()
-
-    print("\n--- TEST 1: RBAC PERMISSION ENFORCEMENT ---")
-    cto_user = HorillaUser.objects.get(id=cto_user.id)
-    hod_user = HorillaUser.objects.get(id=hod_user.id)
-    hr_user = HorillaUser.objects.get(id=hr_user.id)
-
-    cto_can_req = is_executive_or_hod(cto_user)
-    hod_can_req = is_executive_or_hod(hod_user)
-    hr_can_req = is_executive_or_hod(hr_user)
-
-    print(f"CTO ({cto_user.username}): Can request? {cto_can_req} (Expected: True)")
-    print(f"HOD Brewery ({hod_user.username}): Can request? {hod_can_req} (Expected: True)")
-    print(f"HR Officer ({hr_user.username}): Can request? {hr_can_req} (Expected: False)")
-
-    assert cto_can_req is True, "CTO must be allowed to request staff requisition!"
-    assert hod_can_req is True, "Head of Department must be allowed to request staff requisition!"
-    assert hr_can_req is False, "HR Officer must NOT be allowed to request staff requisition!"
-    print(">> [PASS] RBAC correctly grants Executives and denies HR Staff!")
-
-    print("\n--- TEST 2: REQUISITION CREATION & VALIDATION ---")
-    # Clean previous test entries if any
+    # -------------------------------------------------------------
+    # TEST 5: REQUISITION WORKFLOW & APPROVAL ENFORCEMENT
+    # -------------------------------------------------------------
+    print("\n--- TEST 5: REQUISITION WORKFLOW & APPROVAL RBAC ENFORCEMENT ---")
+    # Clean previous test entries
     StaffRequisition.objects.filter(position_title__startswith="[TEST]").delete()
 
-    # Create 1: Permanent Budgeted by CTO
-    req1 = StaffRequisition.objects.create(
-        position_title="[TEST] Lead Cloud DevOps Engineer",
-        department_id=it_dept,
-        location="Phnom Penh HQ",
-        function="Technology Infrastructure",
-        company_id=company,
-        headcount=2,
-        requested_by=cto_emp,
-        manager_position="Chief Technology Officer",
-        manager_email=cto_emp.email,
-        employment_type="permanent",
-        permanent_category="budgeted",
-        target_onboarding_date=date(2026, 11, 1),
-        position_level="Senior Specialist / Lead",
-        justification="Cloud migration project for manufacturing ERP system requires 2 senior devops specialists.",
-        position_requirements="5+ years AWS/GCP, Kubernetes, Terraform, CI/CD pipelines.",
-        status="submitted",
-        requested_date=date(2026, 10, 15),
-    )
-    print(f"Created Requisition 1: {req1.requisition_code} - {req1.position_title} (Headcount: {req1.headcount})")
-    assert req1.requisition_code.startswith("REQ-"), "Requisition code must be generated automatically!"
-
-    # Create 2: Permanent Non-Budgeted by HOD Brewery
-    req2 = StaffRequisition.objects.create(
-        position_title="[TEST] Assistant Brewmaster",
-        department_id=brewery_dept,
-        location="Brewery Plant",
-        function="Brewing & Quality",
+    # Step 5.1: HR Officer originates headcount request
+    test_req = StaffRequisition.objects.create(
+        position_title="[TEST] Finance Analyst Specialist",
+        department_id=finance_dept,
+        location="Main Financial Office",
+        function="Financial Planning & Analysis",
         company_id=company,
         headcount=1,
-        requested_by=hod_emp,
-        manager_position="Head of Brewery",
-        manager_email=hod_emp.email,
-        employment_type="permanent",
-        permanent_category="non_budgeted",
-        target_onboarding_date=date(2026, 11, 15),
-        position_level="Manager",
-        justification="Surge in craft brew production demand requiring additional supervisory oversight on evening shifts.",
-        position_requirements="Degree in Food Science/Brewing Engineering, 4+ years commercial brewery experience.",
-        status="reviewed_hr",
-        requested_date=date(2026, 10, 16),
-        hr_reviewer=hr_emp,
-        hr_reviewed_date=date(2026, 10, 18),
-        hr_remarks="Budget amendment requested to CEO.",
-    )
-    print(f"Created Requisition 2: {req2.requisition_code} - {req2.position_title} (Category: {req2.permanent_category})")
-
-    # Create 3: Permanent Replacement by HOD Brewery
-    req3 = StaffRequisition.objects.create(
-        position_title="[TEST] Quality Control Technician",
-        department_id=brewery_dept,
-        location="Brewery Plant",
-        function="Brewing & Quality",
-        company_id=company,
-        headcount=1,
-        requested_by=hod_emp,
-        manager_position="Head of Brewery",
-        manager_email=hod_emp.email,
-        employment_type="permanent",
-        permanent_category="replacement",
-        replacement_for="Dara Sok",
-        replacement_reason="Employee resigned on Oct 10 to relocate overseas.",
-        target_onboarding_date=date(2026, 11, 1),
-        position_level="Officer",
-        justification="Immediate backfill necessary to prevent bottling line QA delays.",
-        position_requirements="HACCP certification, laboratory testing proficiency.",
-        status="approved",
-        requested_date=date(2026, 10, 12),
-        hr_reviewer=hr_emp,
-        hr_reviewed_date=date(2026, 10, 13),
-        approved_by=cto_emp,
-        approved_date=date(2026, 10, 14),
-        approval_remarks="Approved as critical backfill.",
-    )
-    print(f"Created Requisition 3: {req3.requisition_code} - {req3.position_title} (Replacement for: {req3.replacement_for})")
-
-    # Create 4: Contract Full-Time by CTO
-    req4 = StaffRequisition.objects.create(
-        position_title="[TEST] Temporary Network Setup Specialist",
-        department_id=it_dept,
-        location="Phnom Penh HQ",
-        function="IT Support",
-        company_id=company,
-        headcount=1,
-        requested_by=cto_emp,
-        manager_position="Chief Technology Officer",
-        manager_email=cto_emp.email,
+        requested_by=hr_emp,
+        manager_position="HR Officer",
+        manager_email=hr_emp.email,
         employment_type="contract",
         contract_term="full_time",
-        period_from=date(2026, 11, 1),
-        period_to=date(2027, 4, 30),
+        period_from=None,  # Optional
+        period_to=None,    # Optional
         working_days_hours="Mon - Fri, 8:00 AM - 5:00 PM (40 hrs/wk)",
-        justification="6-month network cabling and server rack installation for warehouse extension.",
-        position_requirements="CCNA or equivalent, physical cabling experience.",
+        justification="Year-end audit and compliance reconciliation.",
+        position_requirements="CPA/ACCA qualified, 3+ years enterprise audit experience.",
+        job_description_file="Job_Description_Finance_Analyst.pdf",
         status="submitted",
-        requested_date=date(2026, 10, 17),
+        requested_date=date(2026, 10, 16),
     )
-    print(f"Created Requisition 4: {req4.requisition_code} - {req4.position_title} (Contract: {req4.contract_term})")
-    print(">> [PASS] Requisition records created with complete RMO-HRA-QF-001 metadata!")
+    print(f"HR Created Requisition: {test_req.requisition_code} - {test_req.position_title} (Status: {test_req.status})")
+    assert test_req.status == "submitted", "Initial status must be submitted"
+    assert test_req.requisition_code.startswith("REQ-"), "Requisition code must be generated automatically"
 
-    print("\n--- TEST 3: OFFICIAL PDF TICKET GENERATION ---")
+    # Step 5.2: Admin reviews the requisition
     factory = RequestFactory()
-    req_pdf_url = f"/recruitment/staff-requisition-pdf/{req3.id}/"
-    request = factory.get(req_pdf_url)
-    request.user = cto_user
+    review_request = factory.post(
+        f"/recruitment/staff-requisition-status/{test_req.id}/",
+        data={"action": "hr_review", "remarks": "Reviewed and verified against Q4 budget."}
+    )
+    review_request.user = admin_user
+    attach_request_middleware(review_request)
 
-    pdf_response = staff_requisition_pdf(request, pk=req3.id)
-    print(f"PDF Response status: {pdf_response.status_code}")
-    print(f"Content-Type: {pdf_response['Content-Type']}")
-    print(f"Content-Disposition: {pdf_response['Content-Disposition']}")
-    print(f"PDF Payload size: {len(pdf_response.content)} bytes")
+    staff_requisition_status_update(review_request, pk=test_req.id)
+    test_req.refresh_from_db()
+    assert test_req.status == "reviewed_hr", f"Status should be reviewed_hr, got {test_req.status}"
+    assert test_req.hr_reviewer == admin_emp, "HR reviewer should be recorded"
+    print(f">> [PASS] Admin successfully reviewed requisition: Status = {test_req.status}")
 
-    assert pdf_response.status_code == 200, "PDF ticket view should return HTTP 200!"
-    assert pdf_response.content.startswith(b"%PDF-"), "Generated response should be a valid PDF binary!"
-    assert len(pdf_response.content) > 5000, "PDF file size should be substantial!"
-    print(">> [PASS] RMO-HRA-QF-001 PDF ticket generated successfully!")
+    # Step 5.3: Security Test - HR Officer attempts to execute ceo_approve
+    hr_approve_request = factory.post(
+        f"/recruitment/staff-requisition-status/{test_req.id}/",
+        data={"action": "ceo_approve", "remarks": "HR attempting unauthorized CEO approval."}
+    )
+    hr_approve_request.user = hr_user
+    attach_request_middleware(hr_approve_request)
 
-    print("\n--- TEST 4: TALENT AUDIT / SUMMARY REPORT (REPORTS > TALENT) ---")
+    staff_requisition_status_update(hr_approve_request, pk=test_req.id)
+    test_req.refresh_from_db()
+    assert test_req.status == "reviewed_hr", f"HR must NOT be able to approve! Status was changed to {test_req.status}"
+    print(">> [PASS] HR Officer blocked from approving staff requisition (Status remains reviewed_hr)!")
+
+    # Step 5.4: Security Test - Admin attempts to execute ceo_approve
+    admin_approve_request = factory.post(
+        f"/recruitment/staff-requisition-status/{test_req.id}/",
+        data={"action": "ceo_approve", "remarks": "Admin attempting unauthorized CEO approval."}
+    )
+    admin_approve_request.user = admin_user
+    attach_request_middleware(admin_approve_request)
+
+    staff_requisition_status_update(admin_approve_request, pk=test_req.id)
+    test_req.refresh_from_db()
+    assert test_req.status == "reviewed_hr", f"Admin must NOT be able to approve! Status was changed to {test_req.status}"
+    print(">> [PASS] Admin blocked from approving staff requisition (Status remains reviewed_hr)!")
+
+    # Step 5.5: CEO executes ceo_approve
+    ceo_approve_request = factory.post(
+        f"/recruitment/staff-requisition-status/{test_req.id}/",
+        data={"action": "ceo_approve", "remarks": "Approved by Eleanor Sterling (CEO)."}
+    )
+    ceo_approve_request.user = ceo_user
+    attach_request_middleware(ceo_approve_request)
+
+    staff_requisition_status_update(ceo_approve_request, pk=test_req.id)
+    test_req.refresh_from_db()
+    assert test_req.status == "approved", f"Status should be approved, got {test_req.status}"
+    assert test_req.approved_by == ceo_emp, f"Approved by must be CEO, got {test_req.approved_by}"
+    assert test_req.approved_by_clean_name == "Eleanor Sterling", f"Clean name should be Eleanor Sterling, got {test_req.approved_by_clean_name}"
+    print(f">> [PASS] CEO successfully approved requisition: Status = {test_req.status}, Approver = {test_req.approved_by_clean_name}")
+
+    # -------------------------------------------------------------
+    # TEST 6: OFFICIAL PDF TICKET GENERATION (RMO-HRA-QF-001)
+    # -------------------------------------------------------------
+    print("\n--- TEST 6: OFFICIAL PDF TICKET GENERATION ---")
+    pdf_request = factory.get(f"/recruitment/staff-requisition-pdf/{test_req.id}/")
+    pdf_request.user = ceo_user
+    attach_request_middleware(pdf_request)
+
+    pdf_response = staff_requisition_pdf(pdf_request, pk=test_req.id)
+    assert pdf_response.status_code == 200, f"Expected 200, got {pdf_response.status_code}"
+    assert pdf_response["Content-Type"] == "application/pdf", "Expected application/pdf"
+    assert pdf_response.content.startswith(b"%PDF-"), "Generated response should be valid PDF binary"
+    assert len(pdf_response.content) > 5000, f"PDF file size should be substantial (got {len(pdf_response.content)} bytes)"
+    print(f">> [PASS] RMO-HRA-QF-001 PDF ticket generated successfully ({len(pdf_response.content):,} bytes)!")
+
+    # -------------------------------------------------------------
+    # TEST 7: TALENT AUDIT / SUMMARY REPORT & EXPORTS
+    # -------------------------------------------------------------
+    print("\n--- TEST 7: TALENT AUDIT REPORT & EXPORTS (REPORTS > TALENT) ---")
     rep_def = get_report("staff-requisition-summary")
     assert rep_def is not None, "Report 'staff-requisition-summary' must be registered in ReportDefinition registry!"
-    print(f"Registered Report: {rep_def.name} [Domain: {rep_def.domain}]")
     assert rep_def.domain == "talent", "Report must belong to the 'talent' domain!"
 
-    filters = ReportFilters(
-        from_date=date(2026, 10, 1),
-        to_date=date(2026, 10, 31),
-    )
+    filters = ReportFilters(from_date=date(2026, 1, 1), to_date=date(2026, 12, 31))
     payload = run_report("staff-requisition-summary", filters)
-    print(f"Report Title: {payload['title']}")
-    print("KPIs:")
-    for kpi in payload["kpis"]:
-        print(f"  • {kpi['label']}: {kpi['value']} ({kpi['hint']})")
-
+    assert payload is not None, "Report run returned None"
+    assert "kpis" in payload and "table" in payload, "Report payload missing expected keys"
     table_rows = payload["table"]["rows"]
-    print(f"Total rows in summary audit table: {len(table_rows)}")
-    assert len(table_rows) >= 4, "Should list at least the 4 test requisitions!"
+    print(f"Report run completed. Table contains {len(table_rows)} requisitions.")
+    assert len(table_rows) >= 1, "Should list at least the approved test requisition"
 
-    print("\n--- TEST 5: EXPORT CAPABILITIES (EXCEL & PDF) ---")
-    # Test Excel Export
+    # Export Excel
     xlsx_resp = export_xlsx(payload, filename="Staff_Requisitions_Summary.xlsx")
     assert xlsx_resp.status_code == 200, "Excel export should return HTTP 200!"
-    print(f"Excel export size: {len(xlsx_resp.content)} bytes [Content-Type: {xlsx_resp['Content-Type']}]")
+    print(f"Excel export verified ({len(xlsx_resp.content):,} bytes)")
 
-    # Test PDF Export
+    # Export PDF
     pdf_resp = export_pdf(payload, filename="Staff_Requisitions_Summary.pdf")
     assert pdf_resp.status_code == 200, "PDF export should return HTTP 200!"
-    assert pdf_resp.content.startswith(b"%PDF-"), "Summary PDF should be a valid PDF file!"
-    print(f"PDF export size: {len(pdf_resp.content)} bytes [Content-Type: {pdf_resp['Content-Type']}]")
-    print(">> [PASS] Excel and PDF exports generated without any issues!")
+    assert pdf_resp.content.startswith(b"%PDF-"), "Summary PDF should be a valid PDF binary!"
+    print(f"PDF export verified ({len(pdf_resp.content):,} bytes)")
+    print(">> [PASS] Talent Audit / Summary Report and exports working seamlessly!")
 
-    print("\n" + "=" * 60)
-    print("ALL TESTS PASSED SUCCESSFULLY (5/5)!")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("ALL 7 SYSTEM & RBAC VERIFICATION SUITES PASSED FLAWLESSLY!")
+    print("=" * 70)
+
 
 if __name__ == "__main__":
     run_tests()

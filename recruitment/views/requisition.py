@@ -21,7 +21,14 @@ from django.utils.translation import gettext as _
 from base.methods import html_to_pdf_bytes
 from base.models import Company, Department
 from employee.models import Employee
-from recruitment.accessibility import can_audit_requisition, is_executive_or_hod
+from recruitment.accessibility import (
+    can_audit_requisition,
+    can_request_requisition,
+    can_review_requisition,
+    can_approve_requisition,
+    is_ceo,
+    is_executive_or_hod,
+)
 from recruitment.forms import StaffRequisitionForm
 from recruitment.models import StaffRequisition
 
@@ -29,22 +36,24 @@ from recruitment.models import StaffRequisition
 def staff_requisition_list(request):
     """
     Overview list of all staff requisitions.
-    Executives see their department's requisitions; HR and Admins can audit all.
+    HR, Admins, and CEO see all requisitions; department managers see their department's.
     """
     user = request.user
-    if not (is_executive_or_hod(user) or can_audit_requisition(user)):
+    if not (can_request_requisition(user) or can_audit_requisition(user) or is_ceo(user)):
         raise PermissionDenied(_("You do not have permission to view staff requisitions."))
 
     employee = getattr(user, "employee_get", None)
     is_exec = is_executive_or_hod(user)
     is_audit = can_audit_requisition(user)
+    is_ceo_user = is_ceo(user)
+    can_req = can_request_requisition(user)
 
     queryset = StaffRequisition.objects.select_related(
         "department_id", "job_position_id", "requested_by", "company_id"
     ).filter(is_active=True)
 
-    # Scoping: if executive without general HR audit rights, filter to their requested requisitions or department
-    if is_exec and not is_audit:
+    # Scoping: if department requester without HR/Admin/CEO audit rights, filter to their requested requisitions or department
+    if (is_exec or can_req) and not (is_audit or is_ceo_user or user.is_superuser):
         if employee:
             work_info = getattr(employee, "employee_work_info", None)
             user_dept = work_info.department_id if work_info else None
@@ -86,6 +95,9 @@ def staff_requisition_list(request):
         "requisitions": queryset.order_by("-id"),
         "is_executive": is_exec,
         "is_auditor": is_audit,
+        "is_ceo": is_ceo_user,
+        "can_request": can_req,
+        "can_review": can_review_requisition(user),
         "status_filter": status_filter,
         "departments": departments,
         "total_count": queryset.count(),
@@ -96,21 +108,26 @@ def staff_requisition_list(request):
 def staff_requisition_create(request):
     """
     Requisition Entry Form.
-    RBAC ENFORCEMENT: Only Executives / Department Heads / CTO can fill this out.
-    HR staff and general non-executive admins are blocked.
+    HR and ADMIN have full admin access to originate headcount requests,
+    along with Executive Leadership, Department Heads, CTO, and CEO.
     """
     user = request.user
-    if not is_executive_or_hod(user):
+    if not can_request_requisition(user):
         messages.error(
             request,
             _(
-                "Access Denied (RBAC): Staff Requisitions can only be requested by Executive Leadership, "
-                "Department Heads, or the CTO. HR and general administrative accounts cannot originate headcount requests."
+                "Access Denied: Staff Requisitions can only be requested by HR, Administrators, "
+                "or Executive Leadership / Department Heads."
             ),
         )
         return redirect("staff-requisition-view")
 
     employee = getattr(user, "employee_get", None)
+    if not employee:
+        employee = Employee.objects.filter(employee_user_id=user).first()
+        if not employee and user.is_superuser:
+            employee = Employee.objects.filter(badge_id="ADMIN01").first()
+
     if not employee:
         messages.error(
             request,
@@ -196,11 +213,17 @@ def staff_requisition_detail(request, pk):
     user = request.user
     is_exec = is_executive_or_hod(user)
     is_audit = can_audit_requisition(user)
+    is_ceo_user = is_ceo(user)
+    can_req = can_request_requisition(user)
+    can_rev = can_review_requisition(user)
 
     context = {
         "req": requisition,
         "is_executive": is_exec,
         "is_auditor": is_audit,
+        "is_ceo": is_ceo_user,
+        "can_request": can_req,
+        "can_review": can_rev,
     }
     return render(request, "recruitment/requisition/requisition_detail.html", context)
 
@@ -256,6 +279,7 @@ def staff_requisition_pdf(request, pk):
 def staff_requisition_status_update(request, pk):
     """
     Update status: HR review or CEO approval.
+    STRICT POLICY: Only the CEO can approve requisitions. HR and Admins can review.
     """
     if request.method != "POST":
         return redirect("staff-requisition-detail", pk=pk)
@@ -265,7 +289,11 @@ def staff_requisition_status_update(request, pk):
     user = request.user
     employee = getattr(user, "employee_get", None)
 
-    if action == "hr_review" and can_audit_requisition(user):
+    if action == "hr_review":
+        if not can_review_requisition(user):
+            messages.error(request, _("Access Denied: Only HR representatives and administrators can review requisitions."))
+            return redirect("staff-requisition-detail", pk=pk)
+
         requisition.status = "reviewed_hr"
         requisition.hr_reviewer = employee
         requisition.hr_reviewed_date = timezone.now().date()
@@ -273,15 +301,26 @@ def staff_requisition_status_update(request, pk):
         requisition.save()
         messages.success(request, _(f"Requisition {requisition.requisition_code} marked as Reviewed by HR."))
 
-    elif action == "ceo_approve" and is_executive_or_hod(user):
+    elif action == "ceo_approve":
+        if not is_ceo(user):
+            messages.error(
+                request,
+                _("Access Denied: Only the Chief Executive Officer (CEO) has authority to approve staff requisitions."),
+            )
+            return redirect("staff-requisition-detail", pk=pk)
+
         requisition.status = "approved"
         requisition.approved_by = employee
         requisition.approved_date = timezone.now().date()
         requisition.approval_remarks = request.POST.get("remarks", "")
         requisition.save()
-        messages.success(request, _(f"Requisition {requisition.requisition_code} successfully Approved."))
+        messages.success(request, _(f"Requisition {requisition.requisition_code} successfully Approved by CEO."))
 
-    elif action == "reject" and (can_audit_requisition(user) or is_executive_or_hod(user)):
+    elif action == "reject":
+        if not (is_ceo(user) or can_review_requisition(user)):
+            messages.error(request, _("Access Denied: You do not have permission to reject this requisition."))
+            return redirect("staff-requisition-detail", pk=pk)
+
         requisition.status = "rejected"
         requisition.approval_remarks = request.POST.get("remarks", "")
         requisition.save()
@@ -299,7 +338,7 @@ def staff_requisition_extract_jd(request):
     if request.method != "POST":
         return JsonResponse({"error": _("POST required")}, status=405)
 
-    if not is_executive_or_hod(request.user):
+    if not can_request_requisition(request.user):
         return JsonResponse({"error": _("Permission denied")}, status=403)
 
     uploaded_file = request.FILES.get("job_description_file")

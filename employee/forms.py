@@ -577,6 +577,8 @@ excel_columns = [
     ("emergency_contact", _("Emergency Contact")),
     ("emergency_contact_name", _("Emergency Contact Name")),
     ("emergency_contact_relation", _("Emergency Contact Relation")),
+    ("nffs_name", _("NFFS Name")),
+    ("nffs_id_number", _("NFFS ID Number")),
     ("employee_work_info__email", _("Work Email")),
     ("employee_work_info__mobile", _("Work Phone")),
     ("employee_work_info__department_id", _("Department")),

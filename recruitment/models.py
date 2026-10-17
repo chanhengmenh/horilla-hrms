@@ -2387,7 +2387,7 @@ class StaffRequisition(HorillaModel):
                     return name
             import re
             return re.sub(r"\s*\([^)]*\)", "", str(self.approved_by)).strip()
-        return "KHIEU Sarvorneat"
+        return "Eleanor Sterling"
 
     @property
     def approved_by_position(self):

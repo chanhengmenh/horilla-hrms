@@ -1,3 +1,25 @@
+<style>
+    .icon-change{
+        position: relative;
+        left: 10px;
+    }
+    .customize1{
+        position: relative;
+        top: 30px;
+    }
+
+</style>
+
+{% load i18n %}
+{% comment %}
+    "Exchange Rate" card of Settings -> General (System Preferences).
+    The active USD -> KHR rate is used by the Cambodia salary tax and
+    NSSF pension calculation. By default the rate is maintained MANUALLY
+    (never overwritten); the "Automatic monthly NBC fetch" switch below
+    re-enables the automatic application of the official National Bank of
+    Cambodia (NBC) rate of the 15th of the month.
+{% endcomment %}
+
 {% load i18n %}
 <div id="exchangeRateContainer"
     class="rounded-xl border border-dark-50 bg-white shadow-sm mb-4 overflow-hidden">
@@ -12,8 +34,8 @@
     {% endif %}
     <div class="oh-accordion-meta__header flex items-center justify-between gap-3 px-5 py-3.5">
         <div class="flex items-center gap-3">
-            <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-primary-50 text-primary-600 shrink-0">
-                <ion-icon name="swap-horizontal-outline" class="text-lg"></ion-icon>
+            <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-primary-50 text-primary-600 shrink-10 icon-change">
+                <ion-icon name="swap-horizontal-outline" class="text-lg "></ion-icon>
             </span>
             <div>
                 <div class="text-sm font-semibold text-dark-600">
@@ -77,7 +99,7 @@
                         {% trans "Input the current market rate in KH (Cambodian Riel). Example: 1$ = rate KH" %}
                     </div>
                 </div>
-                <div class="col-sm-12 col-md-6 col-lg-4 d-flex gap-2 align-items-end">
+                <div class="col-sm-12 col-md-6 col-lg-4 d-flex gap-2 align-items-end customize1">
                     <button type="submit" class="oh-btn oh-btn--secondary" style="height: 40px;">
                         {% if exchange_rate %}
                             {% trans "Save Rate" %}

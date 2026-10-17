@@ -12,6 +12,7 @@ from horilla.testkit import make_company, make_employee, make_user
 from payroll.methods.nbc_exchange import (
     apply_exchange_rate,
     apply_nbc_rate_for_date,
+    ensure_monthly_nbc_rate,
     get_nbc_month_rates,
     get_official_nbc_rate,
     get_working_day_for_date,
@@ -299,8 +300,11 @@ class ExchangeRateCalendarTests(TestCase):
 
         # Pchum Ben Festival, 10 - 12 October 2026: the weekend days 10/11
         # and the working day 12 must all be red and carry the name.
+        # NOTE: only the class tail is asserted — when a holiday day is also
+        # "today" the number is wrapped in the primary circle, which reorders
+        # the classes (bg-primary-100 ... text-danger).
         for day in (10, 11, 12):
-            self.assertIn(f'leading-7 font-medium text-danger">{day}<', content)
+            self.assertIn(f'text-danger">{day}<', content)
         self.assertIn("Pchum Ben Festival", content)
         # The legend below the grid lists every holiday of the month,
         # including Thursday 15 October (Commemoration Day of King's Father).
@@ -332,6 +336,24 @@ class ExchangeRateCalendarTests(TestCase):
         self.assertIn(
             "text-[0.625rem] leading-3 font-medium text-success", content
         )
+
+    def test_calendar_legend_explains_the_colours(self):
+        """The legend swatches must match what the grid really prints.
+
+        Regression guard for the legend row: the "applied rate" swatch used to
+        print the word "Green" glued to its label - "Green= rate currently
+        applied to the payroll calculation" - and the weekend swatch was a
+        filled red circle while the grid renders those day numbers as plain red
+        text.
+        """
+
+        content = self._get_calendar(month="2026-09").content.decode()
+
+        self.assertIn("15th - working day", content)
+        self.assertIn("Saturday, Sunday or public holiday", content)
+        self.assertIn("Rate applied to the payroll calculation", content)
+        # The old legend glued the label to the "=" sign.
+        self.assertNotIn("Green=", content)
 
     def test_calendar_navigates_to_the_requested_month(self):
         content = self._get_calendar(month="2026-08").content.decode()
@@ -424,6 +446,21 @@ class SystemPreferencesPageTests(TestCase):
         self.assertNotIn(
             "payroll/templates/payroll/settings/nbc_exchange_rate.html", content
         )
+
+    def test_no_markup_comment_leaks_into_the_card(self):
+        """A "// -- ... -- //" marker is not a template comment - it leaks.
+
+        Regression guard for the "Fetch from NBC" separator of the card: it was
+        written with JavaScript comment markers, so the browser printed
+        "// -- Fetch from NBC button -- //" in the middle of the card.
+        """
+
+        response = self.client.get(reverse("system-preferences-view"))
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertNotIn("// -- Fetch", content)
+        self.assertNotIn("Fetch from NBC button", content)
 
     def test_every_copy_of_the_settings_template_includes_the_card(self):
         """Both copies must include the card - one is shadowed by the loaders."""
@@ -684,6 +721,109 @@ class SettingsExchangeRatePanelTests(TestCase):
         self.client.logout()
         response = self.client.get(
             reverse("settings-exchange-rate-nbc-panel"), HTTP_HX_REQUEST="true"
+        )
+        self.assertNotEqual(response.status_code, 200)
+
+
+class AutoFetchToggleTests(TestCase):
+    """
+    Manual mode (default): the USD -> KHR exchange rate is input manually and
+    the automatic monthly NBC fetch never overwrites it, unless HR switches
+    the "Automatic monthly NBC fetch" toggle ON (Settings -> General).
+    """
+
+    def setUp(self):
+        from horilla.horilla_middlewares import _thread_locals, set_selected_company
+
+        _thread_locals.request = None
+        set_selected_company(None)
+        company = make_company("Toggle Co")
+        self.user = make_user("toggle_admin", is_superuser=True)
+        make_employee(
+            company=company, email="toggle_admin@test.horilla", user=self.user
+        )
+        self.client.force_login(self.user)
+        PayrollSettings.objects.all().delete()
+        NBCExchangeRate.objects.all().delete()
+
+    def test_ensure_monthly_rate_is_a_noop_in_manual_mode(self):
+        # No settings row at all -> manual mode (default).
+        with mock.patch(
+            "payroll.methods.nbc_exchange.apply_nbc_rate_for_date"
+        ) as apply_mock:
+            record, reason = ensure_monthly_nbc_rate(date(2026, 9, 15))
+        self.assertIsNone(record)
+        self.assertIn("disabled", reason)
+        apply_mock.assert_not_called()
+
+    def test_ensure_monthly_rate_is_a_noop_when_toggle_is_off(self):
+        # A settings row exists (HR created the rate) but the toggle is off.
+        PayrollSettings.objects.create(usd_to_khr_rate=4050)
+        with mock.patch(
+            "payroll.methods.nbc_exchange.apply_nbc_rate_for_date"
+        ) as apply_mock:
+            record, reason = ensure_monthly_nbc_rate(date(2026, 9, 15))
+        self.assertIsNone(record)
+        self.assertIn("disabled", reason)
+        apply_mock.assert_not_called()
+        # The manually entered rate is untouched.
+        self.assertEqual(get_usd_to_khr_rate(), 4050.0)
+
+    def test_scheduler_does_not_overwrite_manual_rate_by_default(self):
+        # HR entered a rate manually on the 5th; the scheduler fires on the
+        # 15th and must leave the rate alone (manual mode, no network call).
+        apply_exchange_rate(rate=4050, effective_date=date(2026, 9, 5), source="manual")
+        record, reason = ensure_monthly_nbc_rate(date(2026, 9, 15))
+        self.assertIsNone(record)
+        self.assertIn("disabled", reason)
+        self.assertEqual(get_usd_to_khr_rate(), 4050.0)
+        self.assertEqual(NBCExchangeRate.objects.count(), 1)
+
+    def test_ensure_monthly_rate_applies_when_toggle_is_on(self):
+        PayrollSettings.objects.create(usd_to_khr_rate=4050, auto_fetch_nbc_rate=True)
+        fake_record = mock.Mock()
+        with mock.patch(
+            "payroll.methods.nbc_exchange.apply_nbc_rate_for_date",
+            return_value=(fake_record, "applied"),
+        ) as apply_mock:
+            record, reason = ensure_monthly_nbc_rate(date(2026, 9, 15))
+        apply_mock.assert_called_once()
+        self.assertEqual(record, fake_record)
+
+    def test_toggle_endpoint_switches_auto_fetch_on_and_off(self):
+        url = reverse("settings-exchange-rate-auto-fetch-toggle")
+        # Turn ON (a checked oh-switch posts its value).
+        response = self.client.post(
+            url, {"auto_fetch_nbc_rate": "on"}, HTTP_HX_REQUEST="true"
+        )
+        self.assertEqual(response.status_code, 200)
+        row = PayrollSettings._base_manager.order_by("id").first()
+        self.assertIsNotNone(row)
+        self.assertTrue(row.auto_fetch_nbc_rate)
+        # Turn OFF (an unchecked checkbox posts nothing -> flip).
+        response = self.client.post(url, {}, HTTP_HX_REQUEST="true")
+        self.assertEqual(response.status_code, 200)
+        row.refresh_from_db()
+        self.assertFalse(row.auto_fetch_nbc_rate)
+
+    def test_card_defaults_to_manual_mode_text(self):
+        response = self.client.get(reverse("system-preferences-view"))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Manual mode", content)
+        self.assertIn(
+            reverse("settings-exchange-rate-auto-fetch-toggle"),
+            content,
+        )
+        # The schedule block must NOT be advertised while in manual mode.
+        self.assertNotIn("Automatic NBC fetch scheduled for", content)
+
+    def test_toggle_view_requires_login(self):
+        self.client.logout()
+        response = self.client.post(
+            reverse("settings-exchange-rate-auto-fetch-toggle"),
+            {"auto_fetch_nbc_rate": "on"},
+            HTTP_HX_REQUEST="true",
         )
         self.assertNotEqual(response.status_code, 200)
 

@@ -148,20 +148,21 @@ class HorillaModel(models.Model, metaclass=HorillaModelBase):
 
         request = getattr(_thread_locals, "request", None)
 
-        if request:
+        if request and getattr(request, "user", None):
             user = request.user
-
-            if (
-                hasattr(self, "created_by")
-                and hasattr(self._meta.get_field("created_by"), "related_model")
-                and self._meta.get_field("created_by").related_model == HorillaUser
-            ):
-                if request and not self.pk:
-                    if user.is_authenticated:
+            user_pk = getattr(user, "pk", None)
+            if getattr(user, "is_authenticated", False) and user_pk:
+                user_exists = HorillaUser.objects.filter(pk=user_pk).exists()
+                if (
+                    hasattr(self, "created_by")
+                    and hasattr(self._meta.get_field("created_by"), "related_model")
+                    and self._meta.get_field("created_by").related_model == HorillaUser
+                ):
+                    if not self.pk and user_exists:
                         self.created_by = user
 
-            if request and not request.user.is_anonymous:
-                self.modified_by = user
+                if not getattr(user, "is_anonymous", True) and user_exists:
+                    self.modified_by = user
 
         super(HorillaModel, self).save(*args, **kwargs)
 

@@ -17,6 +17,10 @@
                         {{f.form.email}}
                     </div>
                     <div class="oh-input-group">
+                        <label class="oh-label" for="{{f.form.nffs_name.id_for_label}}">{% trans "NFFS Name" %}</label>
+                        {{f.form.nffs_name}}
+                    </div>
+                    <div class="oh-input-group">
                         <label class="oh-label">{% trans 'Country' %}</label>
                         <select name="country" class="oh-select-2 oh-select w-100 country" id="country">
                         </select>
@@ -35,6 +39,10 @@
                     <div class="oh-input-group">
                         <label class="oh-label" for="{{f.form.gender.id_for_label}}">{% trans "Gender" %}</label>
                         {{f.form.gender}}
+                    </div>
+                    <div class="oh-input-group">
+                        <label class="oh-label" for="{{f.form.nffs_id_number.id_for_label}}">{% trans "NFFS ID Number" %}</label>
+                        {{f.form.nffs_id_number}}
                     </div>
                 </div>
             </div>

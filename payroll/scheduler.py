@@ -22,14 +22,17 @@ def fetch_nbc_exchange_rate():
     Fetch the monthly USD -> KHR exchange rate published by the National Bank
     of Cambodia and apply it to the payroll salary-tax calculation.
 
-    The job runs every few hours but is idempotent: it only acts on the 15th
-    of the month (or the closest working day before it, Monday - Friday, when
-    the 15th falls on a weekend) and only when no rate has been recorded for
-    that working day yet.
+    The job runs every few hours but is idempotent AND opt-in: it only acts
+    when the "Automatic monthly NBC fetch" toggle is ON (Settings -> General
+    -> Exchange Rate card). With the default MANUAL mode it is a no-op, so a
+    manually entered exchange rate is never overwritten. When enabled, it only
+    acts on the 15th of the month (or the closest working day before it,
+    Monday - Friday, when the 15th falls on a weekend) and only when no rate
+    has been recorded for that working day yet.
     """
     import logging
 
-    from payroll.methods.nbc_exchange import ensure_monthly_nbc_rate
+    from payroll.methods.nbc_exchange import ensure_monthly_nbc_rate, ensure_monthly_nffs_rate
 
     logger = logging.getLogger(__name__)
 
@@ -43,6 +46,38 @@ def fetch_nbc_exchange_rate():
             )
     except Exception:
         logger.exception("Automatic NBC exchange-rate fetch failed")
+
+
+def fetch_nffs_exchange_rate():
+    """
+    Fetch the monthly USD -> NFFS exchange rate published by the National
+    Social Security Fund (Laos) and apply it to the payroll NFFS contribution
+    calculation.
+
+    The job runs every few hours but is idempotent AND opt-in: it only acts
+    when the "Automatic monthly NFFS fetch" toggle is ON (Settings -> General
+    -> Exchange Rate card). With the default MANUAL mode it is a no-op, so a
+    manually entered NFFS exchange rate is never overwritten. When enabled, it
+    only acts on the 15th of the month (or the closest working day before it,
+    Monday - Friday) and only when no NFFS rate has been recorded for that
+    working day yet.
+    """
+    import logging
+
+    from payroll.methods.nbc_exchange import ensure_monthly_nffs_rate
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        record, _reason = ensure_monthly_nffs_rate()
+        if record:
+            logger.info(
+                "NFFS exchange rate applied: 1 USD = %s NFFS (%s)",
+                record.rate,
+                record.effective_date,
+            )
+    except Exception:
+        logger.exception("Automatic NFFS exchange-rate fetch failed")
 
 
 def expire_contract():
@@ -169,10 +204,11 @@ def auto_payslip_generate():
 
 if not any(
     cmd in sys.argv
-    for cmd in ["makemigrations", "migrate", "compilemessages", "flush", "shell"]
+    for cmd in ["makemigrations", "migrate", "compilemessages", "flush", "shell", "test"]
 ):
     scheduler = BackgroundScheduler()
     scheduler.add_job(expire_contract, "interval", hours=4)
     scheduler.add_job(auto_payslip_generate, "interval", hours=3)
     scheduler.add_job(fetch_nbc_exchange_rate, "interval", hours=3)
+    scheduler.add_job(fetch_nffs_exchange_rate, "interval", hours=3)
     scheduler.start()

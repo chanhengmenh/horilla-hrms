@@ -137,6 +137,22 @@
                         {{ form.children }} {{ form.children.errors }}
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
+                        <label class="oh-label d-block" for="{{ form.nffs_name.id_for_label }}">
+                            {% trans "NFFS Name" %}
+                        </label>
+                        {{ form.nffs_name }}
+                        {{ form.nffs_name.errors }}
+                    </div>
+                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
+                        <label class="oh-label d-block" for="{{ form.nffs_id_number.id_for_label }}">
+                            {% trans "NFFS ID Number" %}
+                        </label>
+                        {{ form.nffs_id_number }}
+                        {{ form.nffs_id_number.errors }}
+                    </div>
+                </div>
                 <hr class="mt-5 mb-3">
                 <div class="w-100 d-flex align-items-center justify-content-end">
                     <button type="submit" class="oh-btn oh-btn--secondary oh-btn--w-100-resp">

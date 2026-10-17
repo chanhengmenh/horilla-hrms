@@ -27,6 +27,11 @@ urlpatterns = [
         name="settings-exchange-rate-fetch-nbc",
     ),
     path(
+        "settings-exchange-rate-auto-fetch-toggle/",
+        tax_views.settings_exchange_rate_auto_fetch_toggle,
+        name="settings-exchange-rate-auto-fetch-toggle",
+    ),
+    path(
         "settings-exchange-rate-nbc-panel/",
         tax_views.settings_exchange_rate_nbc_panel,
         name="settings-exchange-rate-nbc-panel",

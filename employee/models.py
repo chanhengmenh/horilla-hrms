@@ -144,6 +144,20 @@ class Employee(models.Model):
         blank=True,
         verbose_name=_("Emergency Contact Relation"),
     )
+    # ------------------------------------------------------------------
+    # NFFS registration details captured on the Add Employee form.
+    # Nullable/optional at the model level so imports, the API and
+    # already-existing employees keep working; the create flow marks both
+    # fields required (see employee_view_new /
+    # employee_create_update_personal_info) and they are exported in the
+    # employee excel columns and the employee report pivot.
+    # ------------------------------------------------------------------
+    nffs_name = models.CharField(
+        max_length=200, null=True, blank=True, verbose_name=_("NFFS Name")
+    )
+    nffs_id_number = models.CharField(
+        max_length=50, null=True, blank=True, verbose_name=_("NFFS ID Number")
+    )
     is_active = models.BooleanField(default=True)
     additional_info = models.JSONField(null=True, blank=True)
     is_from_onboarding = models.BooleanField(

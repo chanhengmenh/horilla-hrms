@@ -1585,6 +1585,12 @@ class StaffRequisitionForm(BaseModelForm):
             self.fields["job_position_id"].empty_label = _("--- Select Job Position (Optional) ---")
         if "position_requirements" in self.fields:
             self.fields["position_requirements"].required = False
+        if "job_description_file" in self.fields:
+            self.fields["job_description_file"].required = True
+        if "period_from" in self.fields:
+            self.fields["period_from"].required = False
+        if "period_to" in self.fields:
+            self.fields["period_to"].required = False
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1594,13 +1600,16 @@ class StaffRequisitionForm(BaseModelForm):
         # Position requirements vs JD Attachment validation & auto-extraction
         req_text = cleaned_data.get("position_requirements")
         jd_file = cleaned_data.get("job_description_file")
+        has_existing_file = bool(self.instance and self.instance.pk and self.instance.job_description_file)
 
-        if not req_text and not jd_file:
+        # JD attached document is strictly MANDATORY as HR requires it for hard print & filing
+        if not jd_file and not has_existing_file:
             self.add_error(
-                "position_requirements",
-                _("Please enter position requirements or attach a Job Description (JD) document."),
+                "job_description_file",
+                _("Attached Job Description (JD) document is mandatory. HR requires the attached JD file for hard print and review."),
             )
-        elif not req_text and jd_file:
+
+        if not req_text and jd_file:
             try:
                 from recruitment.methods import extract_text_from_jd_file
                 extracted = extract_text_from_jd_file(jd_file)
@@ -1626,12 +1635,9 @@ class StaffRequisitionForm(BaseModelForm):
                     _("Target onboarding date is required for permanent positions."),
                 )
         elif emp_type in ("contract", "intern"):
+            # Employment period is optional because the requester may not yet know when the new staff is hired
             p_from = cleaned_data.get("period_from")
             p_to = cleaned_data.get("period_to")
-            if not p_from:
-                self.add_error("period_from", _("Start date is required for contract/intern positions."))
-            if not p_to:
-                self.add_error("period_to", _("End date is required for contract/intern positions."))
             if p_from and p_to and p_to < p_from:
                 self.add_error("period_to", _("End date cannot be prior to start date."))
             if not cleaned_data.get("working_days_hours"):

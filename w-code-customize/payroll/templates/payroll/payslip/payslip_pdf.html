@@ -672,11 +672,200 @@
                             </td>
                             <td class="w-20">
                                 <span class="oh-payslip-td-head">
+                                    {% trans "Designation :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.employee_work_info.job_position_id.job_position }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Job Role :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.employee_work_info.job_role_id.job_role }}
+                                </span>
+                            </td>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Employee Type :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.employee_work_info.employee_type_id.employee_type }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Work Type :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.employee_work_info.work_type_id.work_type }}
+                                </span>
+                            </td>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Shift :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.employee_work_info.shift_id.employee_shift }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Date of Joining :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.employee_work_info.date_joining|date:"F j, Y" }}
+                                </span>
+                            </td>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Date of Birth :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.dob|date:"F j, Y" }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Marital Status :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.get_marital_status_display|default:"-" }}
+                                </span>
+                            </td>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Gender :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.get_gender_display|default:"-" }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Work Location :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.employee_work_info.location|default:"-" }}
+                                </span>
+                            </td>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Status :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ payslip.get_status|default:"-" }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Email :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.email|default:"-" }}
+                                </span>
+                            </td>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Phone :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.phone|default:"-" }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Address :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.address|default:"-" }}
+                                </span>
+                            </td>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Bank Name :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.employee_bank_details.bank_name|default:"-" }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
                                     {% trans "Bank Acc./Cheque No :" %}
                                 </span>
 
                                 <span class="oh-payslip-td-value">
                                     {{ employee.employee_bank_details.account_number }}
+                                </span>
+                            </td>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Contract End Date :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.employee_work_info.contract_end_date|date:"F j, Y"|default:"-" }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Contract Wage :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ contract_wage|floatformat:2|currency_symbol_position }}
+                                </span>
+                            </td>
+                            <td class="w-20">
+                                <span class="oh-payslip-td-head">
+                                    {% trans "Basic Salary :" %}
+                                </span>
+
+                                <span class="oh-payslip-td-value">
+                                    {{ employee.employee_work_info.basic_salary|floatformat:2 }}
                                 </span>
                             </td>
                         </tr>

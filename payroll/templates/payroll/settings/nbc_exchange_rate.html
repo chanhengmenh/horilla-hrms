@@ -1,9 +1,18 @@
+<style>
+    .btn-change{
+        position: relative;
+        bottom:30px;
+    }
+</style>
+
 {% load i18n %}
 {% comment %}
     "Exchange Rate" card of Settings -> General (System Preferences).
     The active USD -> KHR rate is used by the Cambodia salary tax and
-    NSSF pension calculation. HR can update it by hand or apply the official
-    National Bank of Cambodia (NBC) rate of the 15th of the month.
+    NSSF pension calculation. By default the rate is maintained MANUALLY
+    (never overwritten); the "Automatic monthly NBC fetch" switch below
+    re-enables the automatic application of the official National Bank of
+    Cambodia (NBC) rate of the 15th of the month.
 {% endcomment %}
 <div id="nbcExchangeRateContainer" class="mb-5">
     {% if messages %}
@@ -26,6 +35,14 @@
                         {% trans "Official National Bank of Cambodia (NBC) rate used by the Cambodia salary tax and NSSF pension calculation." %}
                     </p>
                 </div>
+                <div class="ml-auto">
+                    <button type="button" class="oh-btn oh-btn--secondary oh-btn--small"
+                        hx-post="{% url 'settings-exchange-rate-fetch-nbc' %}"
+                        hx-target="#nbcExchangeRateContainer" hx-swap="outerHTML">
+                        <ion-icon name="cloud-download-outline" class="text-sm"></ion-icon>
+                        {% trans "Fetch from NBC" %}
+                    </button>
+                </div>
             </div>
         </div>
         <div class="px-5 py-5">
@@ -35,7 +52,7 @@
                         {% if exchange_rate %}
                         <span class="text-3xl font-extrabold text-primary-700">1 USD = {{ exchange_rate|floatformat:2 }} KHR</span>
                         {% else %}
-                        <span class="text-xl font-semibold text-danger">{% trans "No exchange rate created yet" %}</span>
+                        <span class="text-3xl font-semibold text-danger">{% trans "Create Exchange Rate" %}</span>
                         {% endif %}
                     </div>
                     {% with latest=rate_history|first %}
@@ -57,82 +74,167 @@
             </div>
         </div>
 
-        {% if perms.payroll.change_payrollsettings %}
-        {# -- Simple basic update form, always visible -- #}
+        
+
+        {# -- Automatic monthly NBC fetch toggle (OFF = manual mode, rate never overwritten) -- #}
+        <form method="post" action="{% url 'settings-exchange-rate-auto-fetch-toggle' %}"
+            hx-post="{% url 'settings-exchange-rate-auto-fetch-toggle' %}"
+            hx-target="#nbcExchangeRateContainer" hx-swap="outerHTML">
+            {% csrf_token %}
+            <div class="px-5 py-4 border-t border-[#ebebeb] flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <ion-icon name="sync-outline" class="text-[#6b7280] text-lg"></ion-icon>
+                    </div>
+                    <div>
+                        <div class="text-sm font-semibold text-[#333]">{% trans "Automatic monthly NBC fetch" %}</div>
+                        <div class="text-xs text-gray-500 mt-0.5">
+                            {% if auto_fetch_nbc_rate %}
+                                {% blocktrans with day=working_day_date|date:"d F Y" %}Automatic NBC fetch scheduled for {{ day }} of every month.{% endblocktrans %}
+                            {% else %}
+                                {% trans "Manual mode" %} &mdash; {% trans "The USD to KHR rate is entered manually and is never overwritten automatically." %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="oh-switch">
+                    <input type="checkbox" class="oh-switch__checkbox" name="auto_fetch_nbc_rate" {% if auto_fetch_nbc_rate %}checked{% endif %}>
+                </div>
+            </div>
+        </form>
+
+        {# -- NFFS exchange rate (manual entry) -- #}
         <div class="border-t border-[#ebebeb]">
+            <div class="px-5 py-4 border-b border-[#ebebeb] bg-[#f0fdf4]">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                        <ion-icon name="cash-outline" class="text-green-600 text-xl"></ion-icon>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-[#1a1a1a]">{% trans "NFFS Exchange Rate" %}</h3>
+                        <p class="text-sm text-gray-500 mt-0.5">
+                            {% trans "Rate used for NFFS membership contribution calculation." %}
+                        </p>
+                    </div>
+                </div>
+            </div>
             <div class="px-5 py-4">
-                <form method="post" action="{% url 'settings-exchange-rate-view' %}"
-                    hx-post="{% url 'settings-exchange-rate-view' %}"
+                <div class="flex items-baseline gap-2">
+                    {% if nffs_exchange_rate %}
+                    <span class="text-3xl font-extrabold text-green-700">1 USD = {{ nffs_exchange_rate|floatformat:2 }} NFFS</span>
+                    {% else %}
+                    <span class="text-3xl font-extrabold text-gray-400">{% trans "No NFFS rate set yet" %}</span>
+                    {% endif %}
+                </div>
+                {% if nffs_exchange_rate %}
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="text-xs text-gray-500">{% trans "Applied on" %} {{ nffs_effective_date|default:current_date|date:"d F Y" }}</span>
+                    <span class="w-1 h-1 bg-green-300 rounded-full"></span>
+                    <span class="text-xs font-medium text-green-700">
+                        {% trans "Applied Successfully" %}
+                    </span>
+                </div>
+                {% endif %}
+                <form method="post" action="{% url 'settings-exchange-rate-nffs-view' %}"
+                    hx-post="{% url 'settings-exchange-rate-nffs-view' %}"
                     hx-target="#nbcExchangeRateContainer" hx-swap="outerHTML">
                     {% csrf_token %}
                     <div class="flex flex-col sm:flex-row sm:items-end gap-3">
                         <div class="flex-1">
-                            <label for="{{ rate_form.usd_to_khr_rate.id_for_label }}"
+                            <label for="{{ nffs_rate_form.nffs_exchange_rate.id_for_label }}"
                                 class="block text-sm font-medium text-[#333] mb-1">
-                                {% if exchange_rate %}
-                                    {% trans "New exchange rate (1 USD = ? KHR)" %}
+                                {% if nffs_exchange_rate %}
+                                    {% trans "New NFFS exchange rate (1 USD = ? NFFS)" %}
                                 {% else %}
-                                    {% trans "Create Exchange Rate" %}
+                                    {% trans "Create NFFS Exchange Rate" %}
                                 {% endif %}
                             </label>
-                            {{ rate_form.usd_to_khr_rate }}
-                            {% for error in rate_form.usd_to_khr_rate.errors %}
+                            {{ nffs_rate_form.nffs_exchange_rate }}
+                            {% for error in nffs_rate_form.nffs_exchange_rate.errors %}
                             <div class="text-xs text-danger mt-1">{{ error }}</div>
                             {% endfor %}
                             <div class="text-xs text-gray-500 mt-1">
-                                {% blocktrans with day=current_date|date:"d F Y" %}Applies from {{ day }} for the Cambodia salary tax and NSSF pension calculation.{% endblocktrans %}
+                                {% blocktrans with day=nffs_effective_date|default:current_date|date:"d F Y" %}
+                                    Applies from {{ day }} for the NFFS membership contribution calculation.
+                                {% endblocktrans %}
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <label for="{{ nffs_rate_form.nffs_effective_date.id_for_label }}"
+                                class="block text-sm font-medium text-[#333] mb-1">
+                                {% trans "Effective date" %}
+                            </label>
+                            {{ nffs_rate_form.nffs_effective_date }}
+                            {% for error in nffs_rate_form.nffs_effective_date.errors %}
+                            <div class="text-xs text-danger mt-1">{{ error }}</div>
+                            {% endfor %}
+                            <div class="text-xs text-gray-500 mt-1">
+                                {% trans "The day this rate applies from (not in the future)." %}
                             </div>
                         </div>
                         <button type="submit"
-                            class="oh-btn oh-btn--primary oh-btn--small h-10 flex items-center gap-1">
+                            class="oh-btn oh-btn--primary oh-btn--small h-10 flex items-center gap-1 btn-change">
                             <ion-icon name="save-outline" class="text-sm"></ion-icon>
                             {% trans "Save" %}
                         </button>
                     </div>
                 </form>
             </div>
-        </div>
-        {% endif %}
+            
 
 
-        {# -- Day-15 automatic schedule info -- #}
-        <div class="px-5 py-4 border-t border-[#ebebeb] bg-[#f9fafb]">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div class="space-y-1.5">
-                    <div class="flex items-center gap-2 text-sm font-semibold text-[#333]">
-                        <ion-icon name="calendar-outline" class="text-primary-600 text-lg"></ion-icon>
-                        {% blocktrans with requested=day_15_date|date:"m/d/y" %}Automatic NBC fetch scheduled for {{ requested }}{% endblocktrans %}
+
+        {# -- Automatic monthly NFFS fetch toggle (OFF = manual mode, rate never overwritten) -- #}
+        <form method="post" action="{% url 'settings-exchange-rate-nffs-auto-fetch-toggle' %}"
+            hx-post="{% url 'settings-exchange-rate-nffs-auto-fetch-toggle' %}"
+            hx-target="#nbcExchangeRateContainer" hx-swap="outerHTML">
+            {% csrf_token %}
+            <div class="px-5 py-4 border-t border-[#ebebeb] flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                        <ion-icon name="repeat-outline" class="text-green-600 text-lg"></ion-icon>
                     </div>
-                    <div class="text-xs text-gray-500">
-                        {% if day_15_is_weekend %}
-                            {% blocktrans with working=working_day_date|date:"m/d/y" %}The 15th falls on a weekend, so the rate of the closest working day ({{ working }}) is used instead.{% endblocktrans %}
-                        {% else %}
-                            {% trans "The 15th is a working day (Monday - Friday); it will be used directly." %}
-                        {% endif %}
-                    </div>
-                    <div class="text-xs text-gray-500">
-                        {% blocktrans with next_15=next_month_15|date:"m/d/y" next_working=next_working_day|date:"m/d/y" %}Next month: the 15th ({{ next_15 }}) resolves to {{ next_working }}.{% endblocktrans %}
-                        {% if next_preview_rate %}
-                            {% blocktrans with rate=next_preview_rate|floatformat:2 %}1 USD = {{ rate }} KHR (forecast){% endblocktrans %}
-                        {% else %}
-                            <span class="text-gray-400">{% trans "Next month rate will be fetched automatically." %}</span>
-                        {% endif %}
+                    <div>
+                        <div class="text-sm font-semibold text-[#333]">{% trans "Automatic monthly NFFS fetch" %}</div>
+                        <div class="text-xs text-gray-500 mt-0.5">
+                            {% if nffs_auto_fetch_rate %}
+                                {% blocktrans with day=working_day_date|date:"d F Y" %}Automatic monthly NFFS fetch scheduled for {{ day }} of every month.{% endblocktrans %}
+                            {% else %}
+                                {% trans "Manual mode" %} &mdash; {% trans "The NFFS exchange rate is entered manually and is never overwritten automatically." %}
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
-
-                {# -- Fetch from NBC button -- #}
-                <button class="oh-btn oh-btn--secondary oh-btn--small h-10 flex items-center gap-2"
-                    hx-post="{% url 'settings-exchange-rate-fetch-nbc' %}"
-                    hx-target="#nbcExchangeRateContainer" hx-swap="outerHTML" hx-indicator="#nbcFetchSpinner">
-                    <ion-icon name="cloud-download-outline" class="text-sm"></ion-icon>
-                    {% trans "Fetch from NBC" %}
-                    <span id="nbcFetchSpinner" class="htmx-indicator spinner-border spinner-border-sm"></span>
-                </button>
+                <div class="oh-switch">
+                    <input type="checkbox" class="oh-switch__checkbox" name="auto_fetch_nffs_rate" {% if nffs_auto_fetch_rate %}checked{% endif %}>
+                </div>
             </div>
+        </form>
+
+        {# -- Done / Applied indicator -- #}
+        {% if nffs_exchange_rate %}
+        <div class="px-5 py-4 border-t border-[#ebebeb] bg-[#f0fdf4] flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <ion-icon name="checkmark-circle-outline" class="text-green-600 text-lg"></ion-icon>
+            </div>
+            <div class="flex-1">
+                <div class="text-sm font-semibold text-green-800">
+                    {% trans "Applied Successfully" %}
+                </div>
+                <div class="text-xs text-green-600 mt-0.5">
+                    {% trans "The NFFS exchange rate has been applied for NFFS membership contribution calculation." %}
+                </div>
+            </div>
+            <span class="text-xs text-gray-400 uppercase tracking-wider">
+                {% trans "Rate" %}: {{ nffs_exchange_rate }} NFFS
+            </span>
         </div>
-    </div>
+        {% endif %}
+        </div>
 
+       
 
+       
     {# -- Exchange Rate Calendar (month grid + per-day rate form) -- #}
     {% include "payroll/settings/nbc_exchange_calendar.html" %}
 
@@ -183,4 +285,5 @@
         </div>
     </div>
     {% endif %}
+</div>
 </div>

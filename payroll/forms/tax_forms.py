@@ -9,6 +9,10 @@ the widget attributes to enhance the user interface and provide a better user ex
 
 """
 
+from datetime import date
+
+from datetime import date
+
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
@@ -154,3 +158,60 @@ class SettingsExchangeRateForm(ModelForm):
         if rate is None or rate <= 0:
             raise forms.ValidationError(_("Enter a valid exchange rate greater than zero."))
         return rate
+
+
+class NFFSExchangeRateForm(ModelForm):
+    """
+    Form for the "NFFS Exchange Rate" card on the System Preferences page
+    (Settings -> General). Updates the NFFS exchange rate used for NFFS
+    membership contribution records, and records the change in the
+    NBCExchangeRate history as a manual entry.
+    """
+
+    class Meta:
+        """Meta options for the NFFS exchange rate form."""
+
+        model = PayrollSettings
+        fields = ["nffs_exchange_rate", "nffs_effective_date"]
+        labels = {
+            "nffs_exchange_rate": _("1 USD = ? NFFS (National Social Security Fund)"),
+            "nffs_effective_date": _("Effective date"),
+        }
+        widgets = {
+            "nffs_exchange_rate": forms.NumberInput(
+                attrs={
+                    "class": "oh-input w-100",
+                    "step": "0.01",
+                    "min": "0.01",
+                    "placeholder": _("e.g. 4053.00"),
+                }
+            ),
+            "nffs_effective_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "class": "oh-input w-100",
+                }
+            ),
+        }
+
+    def clean_nffs_exchange_rate(self):
+        """Reject rates that are missing, zero or negative."""
+        rate = self.cleaned_data.get("nffs_exchange_rate")
+        if rate is None or rate <= 0:
+            raise forms.ValidationError(_("Enter a valid exchange rate greater than zero."))
+        return rate
+
+    def clean(self):
+        """Default the effective date to today; never allow a future date."""
+        cleaned_data = super().clean()
+        rate = cleaned_data.get("nffs_exchange_rate")
+        effective_date = cleaned_data.get("nffs_effective_date")
+        if rate is not None:
+            if effective_date is None:
+                cleaned_data["nffs_effective_date"] = date.today()
+            elif effective_date > date.today():
+                self.add_error(
+                    "nffs_effective_date",
+                    _("The effective date can not be in the future."),
+                )
+        return cleaned_data

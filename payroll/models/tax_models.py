@@ -43,6 +43,48 @@ class PayrollSettings(HorillaModel):
             "calculation then uses it automatically. No rate is hard-coded."
         ),
     )
+    nffs_exchange_rate = models.FloatField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name=_("NFFS Exchange Rate"),
+        help_text=_(
+            "1 USD equals this many NFFS units. Used to convert USD "
+            "amounts for NFFS membership and contribution records. Create "
+            "it once from Settings -> General -> Exchange Rate; every NFFS "
+            "calculation then uses it automatically. No rate is hard-coded."
+        ),
+    )
+    nffs_effective_date = models.DateField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name=_("NFFS Exchange Rate Effective Date"),
+        help_text=_(
+            "The day the manually entered NFFS exchange rate applies from. "
+            "Defaults to the day the rate was saved."
+        ),
+    )
+    auto_fetch_nffs_rate = models.BooleanField(
+        default=False,
+        verbose_name=_("Automatic monthly NFFS fetch"),
+        help_text=_(
+            "Off (default): the NFFS exchange rate is maintained manually "
+            "and is never overwritten automatically. On: the official rate "
+            "of the 15th of every month is applied automatically by the "
+            "background scheduler (manual mode is recommended)."
+        ),
+    )
+    auto_fetch_nbc_rate = models.BooleanField(
+        default=False,
+        verbose_name=_("Automatic monthly NBC fetch"),
+        help_text=_(
+            "Off (default): the USD -> KHR exchange rate is maintained manually "
+            "and is never overwritten automatically. On: the official National "
+            "Bank of Cambodia rate of the 15th of every month is applied "
+            "automatically by the background scheduler."
+        ),
+    )
 
     company_id = models.ForeignKey(Company, null=True, on_delete=models.PROTECT)
     objects = HorillaCompanyManager("company_id")
@@ -61,8 +103,11 @@ class NBCExchangeRate(HorillaModel):
     system.
 
     The official rate published by the National Bank of Cambodia (NBC) on the
-    15th of every month is fetched automatically (see
-    ``payroll.methods.nbc_exchange``). If the 15th falls on a Saturday or a
+    15th of every month is fetched automatically ONLY when HR switched the
+    "Automatic monthly NBC fetch" toggle ON from Settings -> General (see
+    :func:`payroll.methods.nbc_exchange.ensure_monthly_nbc_rate`); by default
+    the exchange rate is maintained manually and the automatic fetch never
+    overwrites it. If the 15th falls on a Saturday or a
     Sunday, the rate of the closest working day BEFORE the 15th (Friday) is
     used, because only Monday - Friday are working days in Cambodia. Manual
     entries made from Settings -> General -> System Preferences are stored
@@ -71,6 +116,7 @@ class NBCExchangeRate(HorillaModel):
 
     SOURCE_CHOICES = [
         ("nbc", _("National Bank of Cambodia (automatic)")),
+        ("nffs", _("National Social Security Fund (automatic)")),
         ("manual", _("Manual entry")),
     ]
 

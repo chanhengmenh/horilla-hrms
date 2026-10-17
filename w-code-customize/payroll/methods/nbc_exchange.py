@@ -25,6 +25,12 @@ exactly the value used by the Cambodia salary tax / NSSF pension calculation
 therefore updates the payroll salary-tax calculation automatically. A history
 of every applied rate is kept in the ``NBCExchangeRate`` model.
 
+IMPORTANT: by default the automatic monthly fetch is OFF
+(``PayrollSettings.auto_fetch_nbc_rate`` = False): HR maintains the exchange
+rate MANUALLY (Settings -> General -> Exchange Rate card) and
+:func:`ensure_monthly_nbc_rate` never overwrites it. Switching the
+"Automatic monthly NBC fetch" toggle ON re-enables the monthly application.
+
 The Settings -> General "Exchange Rate" card additionally shows the official
 rate of the 15th and every rate NBC published during the month (see
 :func:`get_nbc_rate_panel_context`). That month list is served from a short
@@ -475,17 +481,200 @@ def _message_no_rate_found(requested):
     )
 
 
+# ============================================================
+# NFFS EXCHANGE RATE (Laos National Social Security Fund)
+# ============================================================
+
+# NFFS API endpoint - configure with the actual NFFS/Laos exchange rate API
+# when one is available. Until then, the NFFS rate is maintained manually.
+NFFS_EXCHANGE_API_URL = ""
+
+# The day of the month the NFFS rate is applied on.
+NFFS_RATE_DAY = 15
+
+# Max number of days to look back from the requested day (the 15th).
+NFFS_MAX_LOOKBACK_DAYS = 7
+
+# Hard safety cap on the fetched rate.
+NFFS_RATE_MIN = 100.0
+NFFS_RATE_MAX = 1_000_000.0
+
+NFFS_REQUEST_TIMEOUT = 10  # seconds
+NFFS_CACHE_KEY_PREFIX = "payroll:nffs_exchange:month"
+NFFS_CACHE_TIMEOUT = 60 * 60  # 1 hour
+
+
+def apply_nffs_rate(rate, effective_date=None, source="manual", requested_date=None):
+    """Store an NFFS exchange rate and make it active.
+
+    Updates PayrollSettings.nffs_exchange_rate and nffs_effective_date, and
+    records the change in the NBCExchangeRate history.
+
+    Returns the created NBCExchangeRate record.
+    """
+    from payroll.models.tax_models import NBCExchangeRate, PayrollSettings
+
+    if rate is None or rate <= 0:
+        raise ValueError("NFFS exchange rate must be greater than zero.")
+    if not (NFFS_RATE_MIN <= rate <= NFFS_RATE_MAX):
+        raise ValueError(f"NFFS exchange rate {rate} is out of bounds.")
+
+    effective_date = effective_date or date.today()
+
+    settings_row = (
+        PayrollSettings._base_manager.order_by("company_id", "id").first()
+        or PayrollSettings.objects.create()
+    )
+    settings_row.nffs_exchange_rate = rate
+    settings_row.nffs_effective_date = effective_date
+    settings_row.save()
+
+    record = NBCExchangeRate.objects.create(
+        rate=rate,
+        effective_date=effective_date,
+        source=source,
+        requested_date=requested_date or date.today(),
+    )
+    return record
+
+
+def _fetch_nffs_rates(from_date, to_date, timeout=NFFS_REQUEST_TIMEOUT):
+    """Fetch NFFS exchange rates from the configured API.
+
+    Returns a list of (date, rate) tuples. Raises requests.RequestException
+    on connection failure or ValueError on invalid response.
+    """
+    if not NFFS_EXCHANGE_API_URL:
+        raise ValueError("NFFS exchange API URL is not configured.")
+
+    params = {"from": from_date.isoformat(), "to": to_date.isoformat()}
+    response = requests.get(NFFS_EXCHANGE_API_URL, params=params, timeout=timeout)
+    response.raise_for_status()
+    data = response.json()
+
+    rates = []
+    for item in data.get("rates", []):
+        try:
+            day = date.fromisoformat(item["date"])
+            rate = float(item["rate"])
+            rates.append((day, rate))
+        except (KeyError, ValueError, TypeError):
+            continue
+
+    return sorted(rates)
+
+
+def apply_nffs_rate_for_date(requested=None):
+    """Fetch and apply the official NFFS exchange rate for the given date.
+
+    Returns (record, message) tuple, or (None, reason) if no rate could be
+    fetched.
+    """
+    requested = requested or date.today().replace(day=NFFS_RATE_DAY)
+
+    effective = get_working_day_for_date(requested)
+
+    from_date = max(
+        effective - timedelta(days=NFFS_MAX_LOOKBACK_DAYS),
+        effective.replace(day=1),
+    )
+
+    try:
+        rates = _fetch_nffs_rates(from_date, requested)
+    except requests.RequestException as exc:
+        logger.error("NFFS exchange-rate fetch failed: %s", exc)
+        return None, _message_nffs_could_not_connect()
+    except ValueError as exc:
+        logger.error("NFFS exchange-rate response invalid: %s", exc)
+        return None, _message_nffs_could_not_connect()
+
+    for day, rate in reversed(rates):
+        if _is_weekend(day):
+            continue
+        if not (NFFS_RATE_MIN <= rate <= NFFS_RATE_MAX):
+            continue
+        if day > effective:
+            continue
+        record = apply_nffs_rate(
+            rate=rate, effective_date=day, source="nffs", requested_date=requested
+        )
+        return (
+            record,
+            (
+                f"NFFS exchange rate updated: 1 USD = {rate} NFFS "
+                f"(official rate of {day:%d %B %Y})."
+            ),
+        )
+
+    return None, _message_no_nffs_rate_found(requested)
+
+
+def _message_nffs_could_not_connect():
+    return (
+        "Could not connect to the NFFS exchange-rate service. "
+        "Please try again later."
+    )
+
+
+def _message_no_nffs_rate_found(requested):
+    return (
+        "No official NFFS exchange rate was published for the working day "
+        f"around {requested:%d %B %Y}. Please try again later."
+    )
+
+
+def ensure_monthly_nffs_rate(today=None):
+    """Automatic (scheduler) entrypoint for NFFS exchange rate.
+
+    ONLY runs when HR switched the "Automatic monthly NFFS fetch" toggle ON.
+    Returns (record, message) or (None, reason).
+    """
+    from payroll.models.tax_models import NBCExchangeRate, PayrollSettings
+
+    settings_row = (
+        PayrollSettings._base_manager.order_by("company_id", "id").first()
+    )
+    if settings_row is None or not settings_row.auto_fetch_nffs_rate:
+        return None, "automatic NFFS fetch disabled (exchange rate is manual)"
+
+    today = today or date.today()
+    effective = get_working_day_for_date(today.replace(day=NFFS_RATE_DAY))
+
+    if today < effective:
+        return None, "not due yet"
+    if NBCExchangeRate.objects.filter(
+        effective_date=effective, source="nffs"
+    ).exists():
+        return None, "already fetched"
+
+    return apply_nffs_rate_for_date(today.replace(day=NFFS_RATE_DAY))
+
+
 def ensure_monthly_nbc_rate(today: date = None):
     """
     Automatic (scheduler) entrypoint.
 
-    Only acts when the working day for this month's 15th has arrived (or
-    passed) AND no NBC rate has been recorded for that working day yet, so
-    it is safe to run it every few hours. Returns the same
+    ONLY runs when HR switched the "Automatic monthly NBC fetch" toggle ON
+    (Settings -> General -> Exchange Rate card, PayrollSettings.auto_fetch_nbc_rate).
+    By default the toggle is OFF: HR maintains the exchange rate manually and
+    this job must NEVER overwrite a manually entered rate.
+
+    When enabled, it only acts when the working day for this month's 15th has
+    arrived (or passed) AND no NBC rate has been recorded for that working day
+    yet, so it is safe to run it every few hours. Returns the same
     ``(record, message)`` tuple as :func:`apply_nbc_rate_for_date`, or
     ``(None, reason)`` when nothing had to be done.
     """
-    from payroll.models.tax_models import NBCExchangeRate
+    from payroll.models.tax_models import NBCExchangeRate, PayrollSettings
+
+    # Manual-mode guard: unless HR explicitly opted in to the automatic
+    # monthly fetch, the exchange rate is input manually and the scheduler
+    # leaves it untouched.
+    settings_row = (
+        PayrollSettings._base_manager.order_by("company_id", "id").first()
+    )
+    if settings_row is None or not settings_row.auto_fetch_nbc_rate:
+        return None, "automatic NBC fetch disabled (exchange rate is manual)"
 
     today = today or date.today()
     effective = get_working_day_for_date(today.replace(day=NBC_RATE_DAY))

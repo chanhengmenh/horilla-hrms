@@ -2,8 +2,10 @@
 {% comment %}
     "Exchange Rate" card of Settings -> General (System Preferences).
     The active USD -> KHR rate is used by the Cambodia salary tax and
-    NSSF pension calculation. HR can update it by hand or apply the official
-    National Bank of Cambodia (NBC) rate of the 15th of the month.
+    NSSF pension calculation. By default the rate is maintained MANUALLY
+    (never overwritten); the "Automatic monthly NBC fetch" switch below
+    re-enables the automatic application of the official National Bank of
+    Cambodia (NBC) rate of the 15th of the month.
 {% endcomment %}
 <div id="nbcExchangeRateContainer" class="mb-5">
     {% if messages %}
@@ -95,10 +97,36 @@
         {% endif %}
 
 
-        {# -- Day-15 automatic schedule info -- #}
+        {# -- Automatic-fetch toggle + day-15 schedule info -- #}
         <div class="px-5 py-4 border-t border-[#ebebeb] bg-[#f9fafb]">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div class="space-y-1.5">
+                    {% if perms.payroll.change_payrollsettings %}
+                    {# -- Manual vs automatic mode switch (default: manual) -- #}
+                    <div class="flex items-center gap-2">
+                        <div class="oh-switch">
+                            <input type="checkbox" class="oh-switch__checkbox"
+                                name="auto_fetch_nbc_rate"
+                                {% if auto_fetch_nbc_rate %}checked{% endif %}
+                                hx-post="{% url 'settings-exchange-rate-auto-fetch-toggle' %}"
+                                hx-target="#nbcExchangeRateContainer" hx-swap="outerHTML">
+                        </div>
+                        <span class="text-sm font-semibold text-[#333]">
+                            {% trans "Automatic monthly NBC fetch" %}
+                        </span>
+                        <span class="oh-info" title="{% trans 'Off (default): the exchange rate is input manually and is never overwritten. On: the official National Bank of Cambodia rate of the 15th is applied automatically.'}"></span>
+                    </div>
+                    {% endif %}
+
+                    {% if not auto_fetch_nbc_rate %}
+                    <div class="flex items-center gap-2 text-sm font-semibold text-[#333]">
+                        <ion-icon name="create-outline" class="text-primary-600 text-lg"></ion-icon>
+                        {% trans "Manual mode: the exchange rate is input by hand and is never overwritten." %}
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        {% blocktrans %}Update the rate above whenever needed (e.g. the monthly NSSF filing rate). The NBC fetch stays available as an optional manual helper.{% endblocktrans %}
+                    </div>
+                    {% else %}
                     <div class="flex items-center gap-2 text-sm font-semibold text-[#333]">
                         <ion-icon name="calendar-outline" class="text-primary-600 text-lg"></ion-icon>
                         {% blocktrans with requested=day_15_date|date:"m/d/y" %}Automatic NBC fetch scheduled for {{ requested }}{% endblocktrans %}
@@ -118,6 +146,7 @@
                             <span class="text-gray-400">{% trans "Next month rate will be fetched automatically." %}</span>
                         {% endif %}
                     </div>
+                    {% endif %}
                 </div>
 
                 {# -- Fetch from NBC button -- #}

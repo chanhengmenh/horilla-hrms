@@ -169,6 +169,25 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- NFFS -->
+                <div class="border border-[#ebebeb] rounded-md mb-5">
+                    <h3 class="text-sm font-semibold bg-[#f3f3f3] px-3 py-3 text-[#333] flex items-center justify-between gap-2 flex-wrap rounded-t-md">
+                        {% trans "NFFS" %}
+                    </h3>
+                    <div class="grid grid-cols-3 gap-x-4 gap-y-2 emp-grid-3 px-3 py-3">
+                        <div>
+                            <label class="block text-xs font-medium text-color-600 mb-1" for="id_nffs_name">{% trans "NFFS Name" %} <span class="text-primary-600">*</span></label>
+                            {{ form.nffs_name|add_class:"emp-input w-full h-9 px-3 text-xs border border-secondary-200 rounded-md bg-white text-dark-500" }}
+                            {{ form.nffs_name.errors }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-color-600 mb-1" for="id_nffs_id_number">{% trans "NFFS ID Number" %} <span class="text-primary-600">*</span></label>
+                            {{ form.nffs_id_number|add_class:"emp-input w-full h-9 px-3 text-xs border border-secondary-200 rounded-md bg-white text-dark-500" }}
+                            {{ form.nffs_id_number.errors }}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Right: Photo Upload -->

@@ -1,3 +1,11 @@
+<style>
+    .btn-change1{
+        position: relative;
+        bottom:5px;
+    
+    }
+</style>
+
 {% load i18n %}
 {% comment %}
     "Exchange Rate Calendar" of the Settings -> General "Exchange Rate" card.
@@ -175,7 +183,7 @@
                     <span class="text-xs font-medium text-gray-500">{% trans "KHR" %}</span>
                 </div>
                 <button type="submit"
-                    class="oh-btn oh-btn--secondary oh-btn--small flex items-center justify-center gap-1 whitespace-nowrap"
+                    class="oh-btn oh-btn--secondary oh-btn--small flex items-center justify-center gap-1 whitespace-nowrap btn-change1"
                     style="height: 36px; padding: 0 1rem;">
                     <ion-icon name="save-outline" class="text-sm"></ion-icon>
                     {% trans "Save rate" %}

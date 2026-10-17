@@ -63,14 +63,14 @@ def render_requisition_pdf_from_dict(payload: dict, output_pdf_path: str = None)
                     return re.sub(r"\s*\([^)]*\)", "", str(m_name)).strip()
                 if name == "approved_by_clean_name":
                     import re
-                    c_name = self._data.get("ceo_name") or self._data.get("approved_by") or "KHIEU Sarvorneat"
+                    c_name = self._data.get("ceo_name") or self._data.get("approved_by") or "Eleanor Sterling"
                     return re.sub(r"\s*\([^)]*\)", "", str(c_name)).strip()
                 if name == "approved_by_position":
                     return self._data.get("ceo_position", "Chief Executive Officer")
                 if name == "hr_reviewer":
                     return self._data.get("hr_rep_name", "")
                 if name == "approved_by":
-                    return self._data.get("ceo_name", "KHIEU Sarvorneat")
+                    return self._data.get("ceo_name", "Eleanor Sterling")
                 if name == "job_description_file":
                     jd = self._data.get("job_description_file")
                     return type("FileStub", (), {"name": jd})() if jd else None

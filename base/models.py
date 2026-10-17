@@ -2425,8 +2425,8 @@ class DynamicPagination(models.Model):
 
     def save(self, *args, **kwargs):
         request = getattr(_thread_locals, "request", None)
-        user = request.user
-        self.user_id = user
+        if request and getattr(request, "user", None) and getattr(request.user, "is_authenticated", False):
+            self.user_id = request.user
         super().save(*args, **kwargs)
 
     def company_col(self):

@@ -1606,6 +1606,10 @@ def employee_view_new(request):
     This method is used to render form to create a new employee.
     """
     form = EmployeeForm()
+    # NFFS details are mandatory while creating a new employee, but stay
+    # optional when editing existing ones (see below).
+    form.fields["nffs_name"].required = True
+    form.fields["nffs_id_number"].required = True
     work_form = EmployeeWorkInformationForm()
     bank_form = EmployeeBankDetailsForm()
     filter_obj = EmployeeFilter(queryset=Employee.objects.all())
@@ -1891,6 +1895,12 @@ def employee_create_update_personal_info(request, obj_id=None):
     """
     employee = Employee.objects.filter(id=obj_id).first()
     form = EmployeeForm(request.POST, request.FILES, instance=employee)
+    if employee is None:
+        # New employee: NFFS name + ID number must be provided. Existing
+        # employees keep the fields optional so old records can still be
+        # edited without back-filling NFFS details.
+        form.fields["nffs_name"].required = True
+        form.fields["nffs_id_number"].required = True
     if form.is_valid():
         form.save()
         if obj_id is None:

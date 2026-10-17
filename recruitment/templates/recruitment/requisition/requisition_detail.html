@@ -249,7 +249,17 @@
                     </div>
                     <div class="col-md-4">
                         <span class="text-muted small">{% trans "Period" %}</span>
-                        <div class="req-val">{{ req.period_from|date:"M d, Y" }} &rarr; {{ req.period_to|date:"M d, Y" }}</div>
+                        <div class="req-val">
+                            {% if req.period_from and req.period_to %}
+                                {{ req.period_from|date:"M d, Y" }} &rarr; {{ req.period_to|date:"M d, Y" }}
+                            {% elif req.period_from %}
+                                From {{ req.period_from|date:"M d, Y" }} (TBD)
+                            {% elif req.period_to %}
+                                Until {{ req.period_to|date:"M d, Y" }} (TBD)
+                            {% else %}
+                                {% trans "To Be Determined (TBD)" %}
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="col-md-12">
                         <span class="text-muted small">{% trans "Working Day & Hour" %}</span>
@@ -306,8 +316,8 @@
                     <div class="col-md-4">
                         <div class="p-3 h-100 text-center req-tier-box">
                             <div class="badge bg-light text-dark mb-2">{% trans "Tier 2: Checked HR Rep" %}</div>
-                            <div class="req-val">{{ req.hr_reviewer|default:"Ms. Sin Thida" }}</div>
-                            <div class="small text-muted">{% trans "HR & Admin Manager" %}</div>
+                            <div class="req-val">{{ req.hr_reviewer|default:"Samantha Miller" }}</div>
+                            <div class="small text-muted">{% trans "HR & Admin Director" %}</div>
                             {% if req.hr_reviewed_date %}
                             <div class="small text-success mt-2">
                                 <ion-icon name="checkmark-circle-outline"></ion-icon> {% trans "Reviewed" %}: {{ req.hr_reviewed_date|date:"M d, Y" }}
@@ -322,7 +332,7 @@
                     <div class="col-md-4">
                         <div class="p-3 h-100 text-center req-tier-box">
                             <div class="badge bg-light text-dark mb-2">{% trans "Tier 3: Approved by CEO" %}</div>
-                            <div class="req-val">{{ req.approved_by|default:"Mr. KHIEU Sarvorneat" }}</div>
+                            <div class="req-val">{{ req.approved_by|default:"Eleanor Sterling" }}</div>
                             <div class="small text-muted">{% trans "Chief Executive Officer" %}</div>
                             {% if req.approved_date %}
                             <div class="small text-success mt-2">
@@ -337,14 +347,14 @@
             </div>
 
             <!-- Workflow Action Box (For HR Reviewer or CEO Approver) -->
-            {% if is_auditor or is_executive %}
+            {% if can_review or is_ceo %}
             <div class="p-4 mt-4 req-action-box">
                 <h6 class="fw-bold mb-3 req-title">
                     <ion-icon name="options-outline" style="vertical-align: -2px;"></ion-icon>
                     {% trans "Administrative & Approval Actions" %}
                 </h6>
-                <div class="d-flex flex-wrap gap-2">
-                    {% if is_auditor and req.status == 'submitted' %}
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    {% if can_review and req.status == 'submitted' %}
                     <form method="post" action="{% url 'staff-requisition-status' req.id %}">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="hr_review" />
@@ -355,18 +365,23 @@
                     </form>
                     {% endif %}
 
-                    {% if is_executive and req.status != 'approved' and req.status != 'rejected' %}
+                    {% if is_ceo and req.status != 'approved' and req.status != 'rejected' %}
                     <form method="post" action="{% url 'staff-requisition-status' req.id %}">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="ceo_approve" />
                         <button type="submit" class="oh-btn oh-btn--success" style="background: #16a34a; color: white;">
                             <ion-icon name="checkmark-done-outline" class="me-1"></ion-icon>
-                            {% trans "Approve as Executive / CEO" %}
+                            {% trans "Approve as CEO" %}
                         </button>
                     </form>
+                    {% elif not is_ceo and req.status != 'approved' and req.status != 'rejected' %}
+                    <div class="d-inline-flex align-items-center text-muted small px-3 py-2" style="background: rgba(156, 163, 175, 0.1); border-radius: 6px; border: 1px dashed #9ca3af;">
+                        <ion-icon name="lock-closed-outline" class="me-1"></ion-icon>
+                        {% trans "Final Approval restricted exclusively to the Chief Executive Officer (CEO)." %}
+                    </div>
                     {% endif %}
 
-                    {% if req.status != 'rejected' and req.status != 'approved' %}
+                    {% if req.status != 'rejected' and req.status != 'approved' and is_ceo %}
                     <form method="post" action="{% url 'staff-requisition-status' req.id %}">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="reject" />

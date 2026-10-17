@@ -34,6 +34,8 @@ DYNAMIC_FILTER_FIELD_PATHS = {
     "date_joining": "employee_work_info__date_joining",
     "experience": "employee_work_info__experience",
     "company": "employee_work_info__company_id__company",
+    "nffs_name": "nffs_name",
+    "nffs_id_number": "nffs_id_number",
 }
 
 NAME_FIELD_PATHS = {
@@ -275,6 +277,8 @@ def employee_pivot(request):
             "gender",
             "email",
             "phone",
+            "nffs_name",
+            "nffs_id_number",
             "employee_work_info__department_id__department",
             "employee_work_info__job_position_id__job_position",
             "employee_work_info__job_role_id__job_role",
@@ -302,6 +306,8 @@ def employee_pivot(request):
             "Gender": choice_gender.get(item["gender"]),
             "Email": item["email"],
             "Phone": item["phone"],
+            "NFFS Name": item["nffs_name"] or "-",
+            "NFFS ID Number": item["nffs_id_number"] or "-",
             "Department": (
                 item["employee_work_info__department_id__department"]
                 if item["employee_work_info__department_id__department"]

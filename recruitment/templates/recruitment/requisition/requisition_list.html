@@ -187,15 +187,15 @@
                 <ion-icon name="bar-chart-outline" class="me-1"></ion-icon>
                 {% trans "Requisition Audit Report" %}
             </a>
-            {% if is_executive %}
+            {% if can_request or is_executive %}
             <a href="{% url 'staff-requisition-create' %}" class="oh-btn oh-btn--primary">
                 <ion-icon name="add-circle-outline" class="me-1"></ion-icon>
                 {% trans "New Requisition" %}
             </a>
             {% else %}
-            <span class="badge bg-light text-muted border p-2" title="{% trans 'Only Executives / Department Heads can request headcount' %}">
+            <span class="badge bg-light text-muted border p-2" title="{% trans 'Staff Requisitions can only be requested by HR, Administrators, or Department Heads' %}">
                 <ion-icon name="lock-closed-outline" class="me-1"></ion-icon>
-                {% trans "Requesting Restricted to Executives" %}
+                {% trans "Requesting Restricted to HR / Admin / Dept Heads" %}
             </span>
             {% endif %}
         </div>
@@ -389,7 +389,7 @@
             <p class="req-text-muted" style="max-width: 500px; margin: 0 auto 20px;">
                 {% if request.GET.search or request.GET.status or request.GET.department_id %}
                     {% trans "No requisitions matched your filter criteria. Try adjusting or clearing your search." %}
-                {% elif is_executive %}
+                {% elif can_request or is_executive %}
                     {% trans "No headcount requests have been submitted yet. Click 'New Requisition' to submit a staff requisition." %}
                 {% else %}
                     {% trans "No staff requisitions are currently pending review or audit." %}
@@ -399,7 +399,7 @@
             <a href="{% url 'staff-requisition-view' %}" class="oh-btn oh-btn--secondary">
                 <ion-icon name="refresh-outline" class="me-1"></ion-icon> {% trans "Clear Filters" %}
             </a>
-            {% elif is_executive %}
+            {% elif can_request or is_executive %}
             <a href="{% url 'staff-requisition-create' %}" class="oh-btn oh-btn--primary">
                 <ion-icon name="add-circle-outline" class="me-1"></ion-icon>
                 {% trans "Submit First Requisition" %}

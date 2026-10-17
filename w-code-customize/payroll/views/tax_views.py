@@ -330,11 +330,22 @@ def _get_settings_rate_context(request, rate_form=None):
     except Exception:
         next_preview = None
 
+    # Automatic monthly NBC fetch toggle (default OFF = manual entry only).
+    # A single shared switch: whichever settings row carries the active rate
+    # (or the global row) holds the flag.
+    settings_toggle_row = (
+        PayrollSettings._base_manager.order_by("company_id", "id").first()
+    )
+    auto_fetch_nbc_rate = bool(
+        settings_toggle_row and settings_toggle_row.auto_fetch_nbc_rate
+    )
+
     context = {
         "exchange_rate": instance.usd_to_khr_rate,
         "rate_form": rate_form or SettingsExchangeRateForm(instance=instance),
         "rate_history": NBCExchangeRate.objects.all()[:12],
         "current_date": today,
+        "auto_fetch_nbc_rate": auto_fetch_nbc_rate,
         "next_effective_date": requested_15,
         # Automatic day-15 schedule (always about the CURRENT month).
         "day_15_date": requested_15,
@@ -425,6 +436,51 @@ def settings_exchange_rate_fetch_nbc(request):
     else:
         messages.error(request, _(message))
 
+    context = _get_settings_rate_context(request)
+    return render(request, "payroll/settings/nbc_exchange_rate.html", context)
+
+
+@login_required
+@hx_request_required
+@permission_required("payroll.change_payrollsettings")
+def settings_exchange_rate_auto_fetch_toggle(request):
+    """
+    Toggle the "Automatic monthly NBC fetch" switch of the Exchange Rate card
+    (Settings -> General).
+
+    The switch defaults to OFF: the USD -> KHR exchange rate is then input
+    MANUALLY and the background scheduler (payroll.scheduler
+    .fetch_nbc_exchange_rate -> ensure_monthly_nbc_rate) never overwrites it.
+    Switching ON re-enables the automatic application of the official NBC
+    rate of the 15th of every month.
+    """
+    tracking_company = get_session_company(request)
+    instance = PayrollSettings.objects.filter(usd_to_khr_rate__isnull=False).first()
+    if instance is None:
+        instance, _created = PayrollSettings.objects.get_or_create(
+            company_id=tracking_company
+        )
+    # Honour the checkbox value posted by the oh-switch; fall back to a flip
+    # when the payload does not carry one (defensive).
+    if "auto_fetch_nbc_rate" in request.POST:
+        enabled = request.POST.get("auto_fetch_nbc_rate") in ("on", "true", "1")
+    else:
+        enabled = not instance.auto_fetch_nbc_rate
+    instance.auto_fetch_nbc_rate = enabled
+    instance.save()
+
+    messages.success(
+        request,
+        _(
+            "Automatic monthly NBC fetch enabled: the official rate of the "
+            "15th will be applied automatically."
+        )
+        if enabled
+        else _(
+            "Automatic monthly NBC fetch disabled: the exchange rate is now "
+            "maintained manually and will never be overwritten."
+        ),
+    )
     context = _get_settings_rate_context(request)
     return render(request, "payroll/settings/nbc_exchange_rate.html", context)
 

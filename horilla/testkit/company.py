@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from horilla.horilla_middlewares import get_selected_company, set_selected_company
+from horilla.horilla_middlewares import _thread_locals, get_selected_company, set_selected_company
 
 
 def clear_selected_company() -> None:
     set_selected_company(None)
+    if hasattr(_thread_locals, "request"):
+        _thread_locals.request = None
 
 
 class CompanyFilterTestMixin:

@@ -1,0 +1,36 @@
+{% load i18n %}
+<hr class="mt-5 mb-3" />
+<div class="row" data-select2-id="select2-data-nffs-info">
+    <div class="col-12">
+        <h3 class="oh-main__titlebar-title fw-bold mb-3">
+            {% trans "NFFS Information" %}
+        </h3>
+        <p class="oh-label text-muted mb-3">
+            {% trans "Used for the employee NFFS report." %}
+        </p>
+    </div>
+    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
+        <div class="oh-input__group">
+            <label
+                class="oh-label {% if form.nffs_name.field.required %}required-star{% endif %}"
+                for="{{ form.nffs_name.id_for_label }}"
+            >
+                {% trans "NFFS Name" %}
+            </label>
+            {{ form.nffs_name }}
+            {{ form.nffs_name.errors }}
+        </div>
+    </div>
+    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
+        <div class="oh-input__group">
+            <label
+                class="oh-label {% if form.nffs_id_number.field.required %}required-star{% endif %}"
+                for="{{ form.nffs_id_number.id_for_label }}"
+            >
+                {% trans "NFFS ID Number" %}
+            </label>
+            {{ form.nffs_id_number }}
+            {{ form.nffs_id_number.errors }}
+        </div>
+    </div>
+</div>

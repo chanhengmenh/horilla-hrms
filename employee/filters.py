@@ -60,6 +60,8 @@ class EmployeeFilter(HorillaFilterSet):
     )
     employee_first_name = django_filters.CharFilter(lookup_expr="icontains")
     employee_last_name = django_filters.CharFilter(lookup_expr="icontains")
+    nffs_name = django_filters.CharFilter(lookup_expr="icontains")
+    nffs_id_number = django_filters.CharFilter(lookup_expr="icontains")
     country = django_filters.CharFilter(lookup_expr="icontains")
     department = django_filters.CharFilter(
         field_name="employee_work_info__department_id__department",

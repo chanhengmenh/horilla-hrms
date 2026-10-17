@@ -1,6 +1,6 @@
 # Project Progress & Technical State Summary
 
-> **Last Updated:** October 14, 2026  
+> **Last Updated:** October 17, 2026  
 > **Workspace:** `C:\Users\Chanheng Menh\Documents\horilla-hrms`  
 > **Active Database:** `PostgreSQL (horillahr_dbs)` on `localhost:5432`  
 > **Primary References:**  
@@ -9,6 +9,7 @@
 > - [`prompts/Job Description-System Specialist.docx`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/prompts/Job%20Description-System%20Specialist.docx)  
 > - [`prompts/Payroll Calculataion.xlsx`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/prompts/Payroll%20Calculataion.xlsx)  
 > - [`samples/employee.csv`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/samples/employee.csv)  
+> - [`horilla-hrms.7z`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla-hrms.7z) (Merged Feature Archive)  
 
 ---
 
@@ -18,13 +19,24 @@
 | :--- | :---: | :--- |
 | **Authentication & Environment** | **READY** | PostgreSQL 16 on `localhost:5432`; Conda `horrila` Python 3.11; `admin` & ESS login verified. |
 | **Payroll & Cambodia Tax Engine** | **READY** | 5 Cambodian tax brackets, NSSF 2% cap (24,000 KHR), dependent relief (150,000 KHR/dep), 50 employees active. |
+| **Automated NBC & NFFS Exchange Rates** | **READY** | Migrations `0012`, `0013`, `0014` applied; opt-in auto-fetch schedulers; Settings exchange rate card; 63/63 tests passing. |
+| **NFFS (Social Security / Pension)** | **READY** | Employee `nffs_name` & `nffs_id_number` fields; migration `0007` applied; create form mandatory; pivot report; 13/13 tests passing. |
+| **Archive Integration (`horilla-hrms.7z`)**| **MERGED** | Surgical 3-way merge completed; Staff Requisition preserved 100%; backup point `backup-before-7z-merge` saved. |
+| **Knowledge Graph (`graphify`)** | **INDEXED** | 39,966 nodes, 92,713 edges, 1,867 communities; interactive HTML map (`graph.html`); 1,653.7x token reduction. |
+| **Company Department Restructure** | **READY** | Strictly consolidated to 4 standard departments: Technical, Admin-HR, Finance, Sales. All relations remapped. |
+| **Fictional Western Employee Roster** | **READY** | All 54 employees & user accounts renamed to fictional Western names (Eleanor Sterling, Arthur Pendelton, Ethan Vance, etc.). |
 | **Staff Requisition Entry Form** | **READY** | Sidebar **Recruitment > Staff Requisitions**; dynamic permanent/contract fields; auto-coding `REQ-YYYY-XXXX`. |
-| **RBAC Access Control** | **READY** | Executives/HODs/CTO originate requests; HR Staff/General Admins restricted from creation; HR audit enabled. |
-| **Official PDF Ticket Generation** | **READY** | Form `RMO-HRA-QF-001` recreated identical to template; atomic multi-page flow; balanced 3-column approvals (`90.5pt` vs `89.7pt`). |
+| **RBAC Access Control** | **READY** | [HR] and [ADMIN] full access to Request & Review; strictly CEO can Approve; non-privileged staff locked out. |
+| **Contract & Intern Headcount Rules** | **READY** | Employment period (from/to) optional for Contract/Intern; attached JD document strictly mandatory for HR hard print. |
+| **Official PDF Ticket Generation** | **READY** | Form layout identical to corporate spec; atomic multi-page flow; balanced 3-column approvals (`90.5pt` vs `89.7pt`). |
+| **Clean White-Label & Code Sanitization** | **READY** | Complete removal of reference code `RMO-HRA-QF-001` across UI, badges, and footers; zero raw filesystem paths. |
+| **Multi-Format JD Auto-Extraction** | **READY** | Native `.docx`, `.pdf`, `.txt`, `.md` parsing; AJAX real-time preview textarea auto-fill; clean PDF Section 5 rendering. |
+| **Navbar Breadcrumbs & Report Isolation** | **READY** | Cross-section crumb flushing; Standard Reports catalog 100% original form; Staff Requisition inspector has View Report & KPIs. |
+| **Instant Live Filter & Search** | **READY** | Instant 0ms client-side row filtering + debounced multi-token server query; auto-filtering dropdowns; quick-clear `x` action. |
+| **Real JD Trial (System Specialist)** | **READY** | `REQ-2026-0013` created with [`Job Description-System Specialist.docx`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/prompts/Job%20Description-System%20Specialist.docx); official PDF ticket saved. |
 | **Talent Audit / Summary Report** | **READY** | **Reports > Talent > Staff Requisition Summary**; KPIs, charts, audit table, Excel/PDF export verified. |
 | **Web UI Dark/Night Mode Theming** | **READY** | Light & dark mode support across list, detail, and form; Horilla brand primary colors (`#E54F38`); high-contrast badges. |
-| **Instant Live Filter & Search** | **READY** | Live debounced search (no Enter needed); auto-filtering dropdowns on selection change; quick-clear `x` action. |
-| **Real JD Trial (System Specialist)** | **READY** | `REQ-2026-0013` created with [`Job Description-System Specialist.docx`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/prompts/Job%20Description-System%20Specialist.docx); official PDF ticket saved. |
+| **Settings & Multitenancy Resilience** | **READY** | Defensive single-row lookups for preferences/exchange rate; missing company icon guard; unauthenticated user protection. |
 
 ---
 
@@ -43,6 +55,15 @@
   - Horilla HRMS login view ([`base/views.py#L812-818`](file:///C:/Users/chanhengmenh/Documents/horilla-hrms/base/views.py#L812-L818)) strictly mandates that every authenticated user (including superusers) must possess an active `Employee` record attached via `user.employee_get`.
   - The `admin` superuser initially had no corresponding record in `employee_employee`.
   - *Fix:* Created a dedicated `Admin User` profile (`badge_id`: `ADMIN01`, role: `Administrator`) in `employee_employee` and linked `EmployeeWorkInformation`. Updated [`import_to_postgres.py`](file:///C:/Users/chanhengmenh/Documents/horilla-hrms/import_to_postgres.py) so it self-initializes on future runs.
+- **Root Cause & Fix for Company Icon `ValueError` in System Preferences:**
+  - When loading `/settings/`, Django attempted to access `company.icon.url` unconditionally. When a company has no uploaded icon file, `FieldFile.url` throws `ValueError: The 'icon' attribute has no file associated with it.`.
+  - *Fix:* Replaced direct `.url` access with safe fallback `company.icon.url if company.icon else ""` in [`base/views.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/base/views.py).
+- **Fix for `MultipleObjectsReturned` / Duplicate Singletons on Multi-Company Preferences:**
+  - In `_system_preferences_context`, `PayrollSettings`, `EmployeeGeneralSetting`, `AnnouncementExpire`, and `DynamicPagination` used `get_or_create(company_id=tracking_company)`. When `tracking_company` was `None` (all-company view) or multiple global settings rows existed, this crashed with `MultipleObjectsReturned`.
+  - *Fix:* Migrated to resilient query pattern `.filter(company_id=tracking_company).first()` with explicit creation fallbacks across [`base/views.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/base/views.py), [`payroll/views/tax_views.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/views/tax_views.py), and [`payroll/views/views.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/views/views.py).
+- **Fix for Unauthenticated User Assignment in `DynamicPagination.save()`:**
+  - `DynamicPagination.save()` unconditionally assigned `self.user_id = request.user` without checking `is_authenticated`, failing on anonymous requests or command executions.
+  - *Fix:* Added defensive check `if request and getattr(request, "user", None) and getattr(request.user, "is_authenticated", False):` in [`base/models.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/base/models.py).
 
 ---
 
@@ -142,14 +163,14 @@ Verified via [`verify_pg.py`](file:///C:/Users/chanhengmenh/Documents/horilla-hr
 | **Filing Status** | `payroll_filingstatus` | **1** | `Cambodia Tax` (`taxable_gross_pay` basis) |
 | **Tax Brackets** | `payroll_taxbracket` | **5** | 0%, 5%, 10%, 15%, 20% with official GDT deductions |
 | **Exchange Rate** | `payroll_payrollsettings` | **1** | `usd_to_khr_rate = 4,046.0` ($ currency prefix) |
-| **NBC Rate History** | `payroll_nbcexchangerate` | **1** | June 15, 2026 official NBC rate (4,046.0 KHR/USD) |
+| **NBC Rate History** | `payroll_nbcexchangerate` | **2** | June 15, 2026 official NBC rate (4,046.0 KHR/USD) + current effective NBC rate |
 | **Leave Types** | `leave_leavetype` | **3** | Annual Leave (18d), Sick Leave (6d), Unpaid Leave |
 | **Available Leaves** | `leave_availableleave` | **100** | 18 AL + 6 SL allocated to each of the 50 employees |
 | **Leave Requests** | `leave_leaverequest` | **10** | 9 approved leaves (AL & SL) with balance deduction, 1 pending |
 | **Public Holidays** | `base_holidays` | **15** | Official 2026 Cambodian national holidays |
 | **Attendance** | `attendance_attendance` | **1,100** | 22 working days for June 2026; June 18th marked as holiday |
 | **Overtime (Monthly)**| `attendance_attendanceovertime` | **15** | 15 employees with 8h–24h approved overtime for June 2026 |
-| **Staff Requisitions**| `recruitment_staffrequisition` | **5** | 1 real JD (`REQ-2026-0013`) + 4 automated test records |
+| **Staff Requisitions**| `recruitment_staffrequisition` | **10** | 1 real JD (`REQ-2026-0013`) + 4 Java search-test records + 4 automated test records + contract sample |
 
 ---
 
@@ -397,6 +418,17 @@ Verified 5/5 test suites passing:
 
 #### 7.11.3 Test Role Seeding & Automated Verification
 - Seeded database with complete Java role spectrum:
+  - `Java Developer` (`REQ-2026-0043`)
+  - `Java Specialist` (`REQ-2026-0072`)
+  - `Java Junior` (`REQ-2026-0073`)
+  - `Java Senior` (`REQ-2026-0074`)
+- Automated verification script [`scratch/verify_search_and_branding.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/scratch/verify_search_and_branding.py):
+  - **Query `J`:** returned all 4 Java roles.
+  - **Query `Ja`:** returned all 4 Java roles.
+  - **Query `special`:** returned `Java Specialist`; excluded `Java Developer`, `Java Junior`, `Java Senior`.
+  - **Query `java special`:** returned `Java Specialist`; excluded `System Specialist`, `Java Developer`, `Java Junior`, `Java Senior`.
+  - **Zero Branding:** confirmed 0 occurrences of `RMO-HRA-QF-001` across list view, detail view, form view, and PDF ticket.
+
 ### 7.12 Job Description Auto-Extraction & Clean PDF Report Presentation
 
 #### 7.12.1 Removal of Raw File Path from PDF Ticket
@@ -426,5 +458,228 @@ Verified 5/5 test suites passing:
   - AJAX endpoint: confirmed live JSON payload.
   - PDF Ticket clean presentation: verified zero occurrences of raw filesystem paths or clutter.
 
+### 7.13 System Preferences, Settings Stability & Multitenant Guarding
 
+#### 7.13.1 Defensive Multitenant Settings Architecture
+- **Root Cause & Problem Analysis:**
+  - When navigating to `/settings/` or loading system preferences:
+    1. **Missing Company Icon `ValueError`:** Accessing `company.icon.url` on companies without an uploaded icon file caused Django's `FieldFile` to throw `ValueError: The 'icon' attribute has no file associated with it.`, crashing the settings page.
+    2. **Uncaught `MultipleObjectsReturned` on Global Settings:** Using `get_or_create(company_id=tracking_company)` when `tracking_company` is `None` (representing "All Companies" in session) caused unhandled crashes if multiple global or company settings records already existed in the database.
+    3. **Unauthenticated Session Safety:** In [`base/models.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/base/models.py), `DynamicPagination.save()` previously assigned `self.user_id = request.user` without checking `is_authenticated`, failing during anonymous or scripted requests.
 
+#### 7.13.2 Resolution & Defensive Singletons
+- **Safe Icon URL Evaluation:** Replaced direct `.url` access with safe fallback:
+  ```python
+  "icon": company.icon.url if company.icon else "",
+  ```
+- **Resilient Single-Row Query Pattern:** Replaced naive `get_or_create` with safe fallback chaining:
+  ```python
+  instance = PayrollSettings.objects.filter(company_id=tracking_company).first()
+  if instance is None and tracking_company is None:
+      instance = PayrollSettings.objects.first()
+  if instance is None:
+      instance = PayrollSettings.objects.create(company_id=tracking_company)
+  ```
+  Applied across `PayrollSettings`, `EmployeeGeneralSetting`, `AnnouncementExpire`, and `DynamicPagination` in:
+  - [`base/views.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/base/views.py)
+  - [`payroll/views/tax_views.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/views/tax_views.py)
+  - [`payroll/views/views.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/views/views.py)
+- **Authenticated User Guard:** Added `if request and getattr(request, "user", None) and getattr(request.user, "is_authenticated", False):` in [`base/models.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/base/models.py).
+
+#### 7.13.3 Verification
+- Simulated request to `_system_preferences_context`: all 53 settings and preference dictionary keys generated cleanly without exception.
+- Verified Django system check: `python manage.py check` reports 0 issues.
+
+---
+
+### 7.14 Company Restructure, Western Fictional Names & Staff Requisition RBAC Overhaul
+
+#### 7.14.1 Department Restructuring (4 Standard Departments)
+- **Business Requirement:** Consolidate company organizational structure strictly to 4 standard departments:
+  1. `[Technical Department]`
+  2. `[Admin-HR Department]`
+  3. `[Finance Department]`
+  4. `[Sales Department]`
+- **Database Migration & ForeignKey Realignment (`scratch/migrate_structure_and_names.py`):**
+  - Ensured exactly 4 departments exist in `base_department` (`Technical Department`, `Admin-HR Department`, `Finance Department`, `Sales Department`).
+  - Remapped all relational records:
+    - `JobPosition.department_id`
+    - `EmployeeWorkInformation.department_id`
+    - `StaffRequisition.department_id`
+    - `Contract.department_id`
+    - `Holidays.department` (ManyToManyField iterating and re-associating)
+  - Purged obsolete legacy departments (`IT`, `HR & Admin`, `Brewery`, `Quality Assurance`, `Commercial Operations`).
+  - Audited via PostgreSQL query: exactly 4 departments remain active in `base_department`.
+
+#### 7.14.2 Western Fictional Employee Renaming & CSV Synchronization
+- **Business Requirement:** Rename all 54 employees to synthetic Western fictional names (guaranteed not real people), and strip legacy Khmer script / Khmer name fields.
+- **Roster Alignment:**
+  - Executive leadership and key roles:
+    - `EMP001`: **Eleanor Sterling** (Chief Executive Officer) - `eleanor.sterling@horilla.com`
+    - `EMP002`: **Marcus Sterling** (Chief Operating Officer)
+    - `EMP003`: **Benjamin Wright** (Chief Financial Officer)
+    - `EXEC01`: **Ethan Vance** (Chief Technology Officer)
+    - `ADMIN01`: **Arthur Pendelton** (System Administrator)
+    - `HROFF01`: **Mason Brooks** (HR Officer)
+    - `HOD01`: **Liam O'Connor** (Sales Department Head)
+  - All 54 employee records updated across:
+    - `employee_employee` (`employee_first_name`, `employee_last_name`, `email`, `emergency_contact_name`)
+    - `horilla_auth_horillauser` (`first_name`, `last_name`, `email`, `username`)
+    - `EmployeeWorkInformation` (`email`)
+    - `additional_info` JSON cleaned of legacy `full_name_khmer` fields.
+  - Synchronized CSV rosters: [`employee.csv`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/employee.csv) and [`samples/employee.csv`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/samples/employee.csv) re-generated with matching 4 departments and fictional Western names.
+
+#### 7.14.3 Staff Requisition Form Rules: Optional Periods & Mandatory JD
+- **Optional Employment Period for Contract & Intern:**
+  - Requesters frequently originate headcount without knowing the exact hiring schedule or onboarding date.
+  - [`recruitment/forms.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/forms.py):
+    - `period_from` and `period_to` set to `required = False`.
+    - `clean()` method updated: only validates date ordering (`period_to >= period_from`) if both dates are supplied.
+  - [`recruitment/templates/recruitment/requisition/requisition_form.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_form.html):
+    - Labels updated to `Employment Period From (Optional)` and `Employment Period To (Optional)`.
+  - [`recruitment/templates/recruitment/requisition/requisition_detail.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_detail.html):
+    - Gracefully displays `TBD` or partial dates if start/end dates are omitted.
+- **Mandatory Attached Job Description (JD) Document:**
+  - HR requires the attached JD document for hard-copy print, physical filing, and formal audit.
+  - [`recruitment/forms.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/forms.py):
+    - `job_description_file.required = True`.
+    - `clean()` method rejects submissions if no JD file is attached and no existing file exists on the requisition instance.
+  - [`recruitment/templates/recruitment/requisition/requisition_form.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_form.html):
+    - Labeled `* Attach Job Description (JD) Document (.docx, .pdf, .txt) - Mandatory for HR Hard Print` with red asterisk and dedicated error feedback container.
+
+#### 7.14.4 Role-Based Access Control (RBAC) Overhaul
+- **Access Policy:**
+  - **[HR] & [ADMIN]:** Full admin access on Staff Requisition to **Request** (`can_request_requisition`) and **Review** (`can_review_requisition`).
+  - **[CEO]:** Exclusive authority to **Approve** (`can_approve_requisition`). Neither HR nor Admin nor CTO can approve.
+  - **Executives & Department Heads:** Can **Request** headcount for their department; cannot approve.
+  - **Regular Employees:** Restricted from requesting and reviewing.
+- **RBAC Methods ([`recruitment/accessibility.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/accessibility.py)):**
+  - `is_ceo(user)`: Strictly checks CEO group, `user_permissions`, or title/role matching `Chief Executive Officer` / `CEO`. Does not grant approval rights to generic superusers unless they are CEO.
+  - `can_request_requisition(user)`: Returns `True` for HR, Admin, Executives, Department Heads, and CEO.
+  - `can_review_requisition(user)`: Returns `True` for HR and Admin.
+  - `can_approve_requisition(user)`: Strictly returns `is_ceo(user)`.
+- **Enforcement in Views & UI:**
+  - [`recruitment/views/requisition.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/views/requisition.py):
+    - `staff_requisition_list`: accessible to HR, Admin, Executives, and CEO.
+    - `staff_requisition_create`: authorized for `can_request_requisition`.
+    - `staff_requisition_status_update`:
+      - `hr_review`: restricted to `can_review_requisition`.
+      - `ceo_approve`: strictly restricted to `is_ceo(user)`. Rejects non-CEO users with an error message and leaves status intact.
+  - [`recruitment/templates/recruitment/requisition/requisition_list.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_list.html):
+    - "New Requisition" button visible to `{% if can_request or is_executive %}`.
+  - [`recruitment/templates/recruitment/requisition/requisition_detail.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_detail.html):
+    - "Approve as CEO" action button rendered strictly for `{% if is_ceo %}`. Non-CEO users see an advisory locked badge.
+  - [`recruitment/models.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/models.py):
+    - Property `approved_by_clean_name` fallback updated to `"Eleanor Sterling"`.
+  - [`recruitment/templates/recruitment/requisition/requisition_pdf_ticket.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/recruitment/templates/recruitment/requisition/requisition_pdf_ticket.html):
+    - Approver default updated to `Eleanor Sterling`.
+
+#### 7.14.5 Automated Verification Test Suite
+- Comprehensive automated test suite [`test_requisition_feature.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/test_requisition_feature.py) covering all 7 test categories:
+  1. **Company Structure Audit:** Exactly 4 departments exist (`Technical Department`, `Admin-HR Department`, `Finance Department`, `Sales Department`).
+  2. **Employee Fictional Renaming Audit:** All 54 employees verified as synthetic Western names; no Cambodian names remaining; CEO = Eleanor Sterling, Admin = Arthur Pendelton, CTO = Ethan Vance.
+  3. **RBAC Permission Enforcement:**
+     - CEO: `is_ceo=True`, `can_request=True`, `can_review=True`, `can_approve=True`.
+     - HR Officer: `is_ceo=False`, `can_request=True`, `can_review=True`, `can_approve=False`.
+     - Admin: `is_ceo=False`, `can_request=True`, `can_review=True`, `can_approve=False`.
+     - CTO: `is_ceo=False`, `can_request=True`, `can_review=False`, `can_approve=False`.
+     - Regular Staff: `is_ceo=False`, `can_request=False`, `can_review=False`, `can_approve=False`.
+  4. **Form Validation (Mandatory JD & Optional Periods):**
+     - Submission without JD document fails with field error on `job_description_file`.
+     - Contract submission with JD document but without dates passes validation.
+     - Intern submission with JD document but without dates passes validation.
+  5. **Requisition Workflow & Approval RBAC Enforcement:**
+     - Requisition created by HR Officer (`status="submitted"`).
+     - Requisition reviewed by Admin (`status="reviewed_hr"`).
+     - Security check: HR Officer blocked from `ceo_approve` (status unchanged).
+     - Security check: Admin blocked from `ceo_approve` (status unchanged).
+     - CEO executes `ceo_approve` -> status becomes `"approved"`, approver is `Eleanor Sterling`.
+  6. **Official PDF Ticket Generation:**
+     - Generates valid PDF binary (HTTP 200, 15,536 bytes) with Eleanor Sterling as CEO approver.
+  7. **Talent Audit / Summary Report & Exports:**
+     - `staff-requisition-summary` generates audit table and KPIs.
+     - Excel export verified (11,407 bytes, HTTP 200).
+     - PDF export verified (9,165 bytes, HTTP 200).
+- **Execution Result:** `ALL 7 SYSTEM & RBAC VERIFICATION SUITES PASSED FLAWLESSLY!`
+
+---
+
+## 8. Knowledge Graph Architecture (`graphify`)
+
+> **Tooling & Engine:** `graphify` knowledge graph system with Louvain/Leiden community detection, AST extraction, and cross-file topological indexing.  
+> **Output Artifacts Directory:** [`graphify-out/`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/graphify-out/)
+
+### 8.1 Graph Scale & Topological Metrics
+- **Total Entities Index:** **39,966 nodes** across Python AST, JavaScript, HTML templates, and configs.
+- **Relational Edges:** **92,713 edges** representing inheritance, imports, calls, containment, and foreign-key mappings.
+- **Community Clustering:** **1,867 functional communities** detected via modularity clustering.
+- **Interactive Visualizer:** [`graphify-out/graph.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/graphify-out/graph.html) (1,867 community nodes, 5,302 cross-community edges).
+- **Audit & Topology Report:** [`graphify-out/GRAPH_REPORT.md`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/graphify-out/GRAPH_REPORT.md).
+- **Token Reduction Benchmark:** Demonstrated **1,653.7x fewer tokens per query** vs naive full-corpus context insertion (1.96M words / ~2.62M tokens compressed to ~1,587 tokens per query).
+
+### 8.2 Architectural God Nodes (Core System Hubs)
+1. [`HorillaRedirect`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla/http/response.py) (**1,171 edges**): Primary cross-module HTTP response and view-transition coordinator.
+2. `render_template()` (**613 edges**): Central template rendering dispatch.
+3. [`Employee`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/employee/models.py) (**393 edges**): Central domain model connecting 60+ functional subgraphs across Attendance, Leave, Payroll, Recruitment, PMS, Asset, Onboarding, and Offboarding.
+4. `HorillaCompanyManager` (**311 edges**): Multi-tenant company scoping manager.
+5. `HttpResponse` (**277 edges**): Core Django response abstraction.
+6. `filtersubordinates()` (**254 edges**): Hierarchical manager-subordinate resolution.
+7. `HorillaUser` (**223 edges**): User identity and session authentication bridge.
+8. `login_required()` (**205 edges**): Authentication access gate.
+
+---
+
+## 9. Feature Merge & Archive Integration (`horilla-hrms.7z`)
+
+> **Archive Source:** [`horilla-hrms.7z`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla-hrms.7z) (151.5 MB, 50,481 entries)  
+> **Source Directory inside Archive:** `horilla-hrms - Copy (9)/horilla-hrms/`  
+> **Safety Rollback Reference:** Git branch `backup-before-7z-merge` (`317ff54e96f3461687423e05bae05a3d6f14d5fe`)
+
+### 9.1 Conflict Analysis & Preservation Strategy
+- **Risk Identified:** The archive pre-dates the Staff Requisition implementation. An unconstrained extraction would have overwritten and deleted `recruitment/models.py`, `recruitment/views/requisition.py`, `recruitment/forms.py`, `recruitment/accessibility.py`, all requisition templates, and tests.
+- **Surgical 3-Way Merge Strategy:**
+  1. **Strictly Preserved:** All Staff Requisition models, views, forms, templates, PDF generators, and tests in `recruitment/`.
+  2. **Strictly Preserved:** Defensive multi-company singleton lookups and anonymous user safety guards in [`base/models.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/base/models.py) and [`base/views.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/base/views.py).
+  3. **Ported from Archive:** NFFS (National Social Security Fund) feature suite and NBC (National Bank of Cambodia) automated exchange rate feature suite.
+  4. **Excluded:** Redundant `.venv/` (24,425 entries), `staticfiles/` (5,536 entries), and database binary files (`TestDB.sqlite3`, `t.db`).
+
+### 9.2 Integrated NFFS (Social Security / Pension) Feature
+- **Database Model & Migrations:**
+  - Added `nffs_name` (`CharField(max_length=200)`) and `nffs_id_number` (`CharField(max_length=50)`) to [`Employee`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/employee/models.py).
+  - Applied migration [`employee/migrations/0007_employee_nffs_id_number_employee_nffs_name.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/employee/migrations/0007_employee_nffs_id_number_employee_nffs_name.py).
+- **Business Logic & UI Forms:**
+  - Required during new employee creation ([`employee/views.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/employee/views.py)); optional during profile edit to allow legacy records without mandatory back-fill.
+  - Added form fields, UI templates ([`employee/templates/employee/create_form/nffs_info.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/employee/templates/employee/create_form/nffs_info.html)), and filter support ([`employee/filters.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/employee/filters.py)).
+  - Exposed in employee Excel exports and Employee Report pivot tables ([`report/views/employee_report.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/report/views/employee_report.py)).
+- **Unit Test Suite:**
+  - Integrated [`employee/tests/test_nffs.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/employee/tests/test_nffs.py): **All 13 tests passed**.
+
+### 9.3 Integrated Automated NBC & NFFS Exchange Rate Engine
+- **Database Model & Migrations:**
+  - Added `nffs_exchange_rate`, `nffs_effective_date`, `auto_fetch_nffs_rate`, and `auto_fetch_nbc_rate` to [`PayrollSettings`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/models/tax_models.py).
+  - Added `nffs` source option to [`ExchangeRateHistory`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/models/tax_models.py).
+  - Applied migrations:
+    - `payroll.0012_payrollsettings_auto_fetch_nbc_rate`
+    - `payroll.0013_payrollsettings_auto_fetch_nffs_rate_and_more`
+    - `payroll.0014_payrollsettings_nffs_effective_date`
+- **Views & System Settings:**
+  - Consolidated settings lookup helper `_get_payroll_settings_instance` in [`payroll/views/tax_views.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/views/tax_views.py).
+  - Added `NFFSExchangeRateForm` in [`payroll/forms/tax_forms.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/forms/tax_forms.py).
+  - Added HTMX exchange rate card and auto-fetch toggle views in [`payroll/urls/tax_urls.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/urls/tax_urls.py) and [`payroll/templates/payroll/settings/nbc_exchange_rate.html`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/templates/payroll/settings/nbc_exchange_rate.html).
+- **Background Schedulers:**
+  - Updated [`payroll/scheduler.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/scheduler.py) with `fetch_nbc_exchange_rate` and `fetch_nffs_exchange_rate` (safe opt-in behavior; manual mode is never overwritten).
+- **Unit Test Suite:**
+  - Integrated [`payroll/tests/test_nbc_exchange_rate.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/tests/test_nbc_exchange_rate.py): **All 63 tests passed**.
+
+### 9.4 Test Transaction & Foreign Key Safeguard
+- **Problem Identified:** During test runs with rollback transactions, stale user objects in thread-local request contexts caused PostgreSQL foreign-key constraint violations on `base_company.created_by_id`.
+- **Resolution:**
+  - In [`horilla/models.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla/models.py), added existence validation before assigning foreign keys: `user_exists = HorillaUser.objects.filter(pk=user_pk).exists()`.
+  - In [`horilla/testkit/company.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/horilla/testkit/company.py), updated `clear_selected_company` to reset `_thread_locals.request = None`.
+
+### 9.5 Verification Summary Post-Merge
+- **Django System Check:** `manage.py check` -> **0 issues**.
+- **Staff Requisition Audit Suite:** [`test_requisition_feature.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/test_requisition_feature.py) -> **7/7 suites passed**.
+- **NFFS Test Suite:** [`employee/tests/test_nffs.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/employee/tests/test_nffs.py) -> **13/13 tests passed**.
+- **NBC Exchange Rate Test Suite:** [`payroll/tests/test_nbc_exchange_rate.py`](file:///C:/Users/Chanheng%20Menh/Documents/horilla-hrms/payroll/tests/test_nbc_exchange_rate.py) -> **63/63 tests passed**.
+- **Knowledge Graph:** Updated to **39,966 nodes** and **92,713 edges**.

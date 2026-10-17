@@ -5942,9 +5942,15 @@ def _system_preferences_context(request):
         )
         from payroll.forms.component_forms import PayrollSettingsForm
 
-        currency_instance, _created = PayrollSettings.objects.get_or_create(
+        currency_instance = PayrollSettings.objects.filter(
             company_id=tracking_company
-        )
+        ).first()
+        if currency_instance is None and tracking_company is None:
+            currency_instance = PayrollSettings.objects.first()
+        if currency_instance is None:
+            currency_instance = PayrollSettings.objects.create(
+                company_id=tracking_company
+            )
         currency_form = PayrollSettingsForm(instance=currency_instance)
     else:
         currency_form = None
@@ -5956,14 +5962,26 @@ def _system_preferences_context(request):
     else:
         companies = Company.objects.filter(id=selected_company_id)
 
-    prefix_instance, _created = EmployeeGeneralSetting.objects.get_or_create(
+    prefix_instance = EmployeeGeneralSetting.objects.filter(
         company_id=tracking_company
-    )
+    ).first()
+    if prefix_instance is None and tracking_company is None:
+        prefix_instance = EmployeeGeneralSetting.objects.first()
+    if prefix_instance is None:
+        prefix_instance = EmployeeGeneralSetting.objects.create(
+            company_id=tracking_company
+        )
     prefix_form = EmployeeGeneralSettingPrefixForm(instance=prefix_instance)
 
-    expire_instance, _created = AnnouncementExpire.objects.get_or_create(
+    expire_instance = AnnouncementExpire.objects.filter(
         company_id=tracking_company
-    )
+    ).first()
+    if expire_instance is None and tracking_company is None:
+        expire_instance = AnnouncementExpire.objects.first()
+    if expire_instance is None:
+        expire_instance = AnnouncementExpire.objects.create(
+            company_id=tracking_company
+        )
     announcement_expire_settings = [expire_instance]
     show_expire_company = len(announcement_expire_settings) > 1
 
@@ -6005,9 +6023,13 @@ def _system_preferences_context(request):
     # Default: all companies selected for assignment.
     tracking_assigned_company_ids = [c.id for c in tracking_assign_companies]
 
-    pagination_instance, _created = DynamicPagination.objects.get_or_create(
+    pagination_instance = DynamicPagination.objects.filter(
         user_id=request.user, company_id=tracking_company
-    )
+    ).first()
+    if pagination_instance is None:
+        pagination_instance = DynamicPagination.objects.create(
+            user_id=request.user, company_id=tracking_company
+        )
     pagination_settings = [pagination_instance]
     show_pagination_company = len(pagination_settings) > 1
 
@@ -6047,7 +6069,7 @@ def _system_preferences_context(request):
         {
             "id": company.id,
             "name": company.company,
-            "icon": company.icon.url,
+            "icon": company.icon.url if company.icon else "",
             "selected": language_company is not None
             and company.id == language_company.id,
             "employee_count": language_employee_counts_by_company.get(company.id, 0),
